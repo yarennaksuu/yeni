@@ -146,6 +146,10 @@ table.process-table {
   align-items: center;
 }
 
+.header-card .mat-mdc-card-actions .spacer {
+  flex: 1 1 auto;
+}
+
 .header-card .mat-mdc-card-actions > * {
   margin: 0;
 }

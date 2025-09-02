@@ -11,9 +11,9 @@
         {{isScanning ? 'Scanning...' : 'Scan'}}
       </button>
 
-      <mat-slide-toggle [(ngModel)]="isDryRun" class="dry-run-toggle">
-        Dry Run Mode
-      </mat-slide-toggle>
+      <span class="spacer"></span>
+
+      <mat-slide-toggle [(ngModel)]="isDryRun" class="dry-run-toggle">Dry Run</mat-slide-toggle>
 
       <button mat-button (click)="toggleAutoRefresh()">
         <mat-icon>{{ isAutoRefresh ? 'pause' : 'autorenew' }}</mat-icon>
