@@ -1,0 +1,286 @@
+  <div class="settings-container">
+      <div class="settings-content">
+        <!-- General Settings -->
+        <div class="settings-section">
+          <div class="section-header">
+            <h3>
+              <i class="fas fa-cog"></i>
+              {{ translate('settings.general') }}
+            </h3>
+            <p>{{ translate('settings.generalDescription') }}</p>
+          </div>
+          
+          <div class="settings-grid">
+            <!-- Language Setting -->
+            <div class="setting-item">
+              <div class="setting-info">
+                <label>{{ translate('settings.language') }}</label>
+                <p class="setting-description">{{ translate('settings.languageDescription') }}</p>
+              </div>
+              <div class="setting-control">
+                <div class="language-selector-full">
+                  <div 
+                    *ngFor="let lang of supportedLanguages"
+                    class="language-option"
+                    [class.active]="currentLanguage === lang.code"
+                    (click)="setLanguage(lang.code)">
+                    <span class="flag">{{ lang.flag }}</span>
+                    <div class="language-info">
+                      <span class="language-name">{{ lang.nativeName }}</span>
+                      <span class="language-english">{{ lang.name }}</span>
+                    </div>
+                    <i class="fas fa-check" *ngIf="currentLanguage === lang.code"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Theme Setting -->
+            <div class="setting-item">
+              <div class="setting-info">
+                <label>{{ translate('settings.theme') }}</label>
+                <p class="setting-description">{{ translate('settings.themeDescription') }}</p>
+              </div>
+              <div class="setting-control">
+                <div class="theme-selector">
+                  <div 
+                    class="theme-option"
+                    [class.active]="currentTheme === 'light'"
+                    (click)="setTheme('light')">
+                    <i class="fas fa-sun"></i>
+                    <span>{{ translate('settings.lightTheme') }}</span>
+                  </div>
+                  <div 
+                    class="theme-option"
+                    [class.active]="currentTheme === 'dark'"
+                    (click)="setTheme('dark')">
+                    <i class="fas fa-moon"></i>
+                    <span>{{ translate('settings.darkTheme') }}</span>
+                  </div>
+                  <div 
+                    class="theme-option"
+                    [class.active]="currentTheme === 'auto'"
+                    (click)="setTheme('auto')">
+                    <i class="fas fa-adjust"></i>
+                    <span>{{ translate('settings.autoTheme') }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notification Settings -->
+        <div class="settings-section">
+          <div class="section-header">
+            <h3>
+              <i class="fas fa-bell"></i>
+              {{ translate('settings.notifications') }}
+            </h3>
+            <p>{{ translate('settings.notificationsDescription') }}</p>
+          </div>
+          
+          <form [formGroup]="notificationForm" class="settings-grid">
+            <!-- Enable Notifications -->
+            <div class="setting-item">
+              <div class="setting-info">
+                <label>{{ translate('settings.enableNotifications') }}</label>
+                <p class="setting-description">{{ translate('settings.enableNotificationsDescription') }}</p>
+              </div>
+              <div class="setting-control">
+                <label class="toggle-switch">
+                  <input type="checkbox" formControlName="enabled">
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Native Notifications -->
+            <div class="setting-item" [class.disabled]="!notificationForm.get('enabled')?.value">
+              <div class="setting-info">
+                <label>{{ translate('settings.nativeNotifications') }}</label>
+                <p class="setting-description">{{ translate('settings.nativeNotificationsDescription') }}</p>
+              </div>
+              <div class="setting-control">
+                <label class="toggle-switch">
+                  <input type="checkbox" formControlName="native">
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Sound Notifications -->
+            <div class="setting-item" [class.disabled]="!notificationForm.get('enabled')?.value">
+              <div class="setting-info">
+                <label>{{ translate('settings.soundNotifications') }}</label>
+                <p class="setting-description">{{ translate('settings.soundNotificationsDescription') }}</p>
+              </div>
+              <div class="setting-control">
+                <label class="toggle-switch">
+                  <input type="checkbox" formControlName="sound">
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Notification Types -->
+            <div class="setting-item full-width" [class.disabled]="!notificationForm.get('enabled')?.value">
+              <div class="setting-info">
+                <label>{{ translate('settings.notificationTypes') }}</label>
+                <p class="setting-description">{{ translate('settings.notificationTypesDescription') }}</p>
+              </div>
+              <div class="setting-control">
+                <div class="checkbox-grid">
+                  <label class="checkbox-item">
+                    <input type="checkbox" formControlName="infoEnabled">
+                    <span class="checkbox-label">
+                      <i class="fas fa-info-circle info"></i>
+                      {{ translate('notifications.info') }}
+                    </span>
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" formControlName="successEnabled">
+                    <span class="checkbox-label">
+                      <i class="fas fa-check-circle success"></i>
+                      {{ translate('notifications.success') }}
+                    </span>
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" formControlName="warningEnabled">
+                    <span class="checkbox-label">
+                      <i class="fas fa-exclamation-triangle warning"></i>
+                      {{ translate('notifications.warning') }}
+                    </span>
+                  </label>
+                  <label class="checkbox-item">
+                    <input type="checkbox" formControlName="errorEnabled">
+                    <span class="checkbox-label">
+                      <i class="fas fa-times-circle error"></i>
+                      {{ translate('notifications.error') }}
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Application Settings -->
+        <div class="settings-section">
+          <div class="section-header">
+            <h3>
+              <i class="fas fa-sliders-h"></i>
+              {{ translate('settings.application') }}
+            </h3>
+            <p>{{ translate('settings.applicationDescription') }}</p>
+          </div>
+          
+          <form [formGroup]="applicationForm" class="settings-grid">
+            <!-- Auto Refresh -->
+            <div class="setting-item">
+              <div class="setting-info">
+                <label>{{ translate('settings.autoRefresh') }}</label>
+                <p class="setting-description">{{ translate('settings.autoRefreshDescription') }}</p>
+              </div>
+              <div class="setting-control">
+                <div class="input-with-unit">
+                  <input type="number" formControlName="autoRefreshInterval" min="5" max="300">
+                  <span class="unit">{{ translate('settings.seconds') }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Process Scan Timeout -->
+            <div class="setting-item">
+              <div class="setting-info">
+                <label>{{ translate('settings.scanTimeout') }}</label>
+                <p class="setting-description">{{ translate('settings.scanTimeoutDescription') }}</p>
+              </div>
+              <div class="setting-control">
+                <div class="input-with-unit">
+                  <input type="number" formControlName="scanTimeout" min="1000" max="60000" step="1000">
+                  <span class="unit">ms</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Confirm Actions -->
+            <div class="setting-item">
+              <div class="setting-info">
+                <label>{{ translate('settings.confirmActions') }}</label>
+                <p class="setting-description">{{ translate('settings.confirmActionsDescription') }}</p>
+              </div>
+              <div class="setting-control">
+                <label class="toggle-switch">
+                  <input type="checkbox" formControlName="confirmActions">
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Show System Processes -->
+            <div class="setting-item">
+              <div class="setting-info">
+                <label>{{ translate('settings.showSystemProcesses') }}</label>
+                <p class="setting-description">{{ translate('settings.showSystemProcessesDescription') }}</p>
+              </div>
+              <div class="setting-control">
+                <label class="toggle-switch">
+                  <input type="checkbox" formControlName="showSystemProcesses">
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Actions -->
+        <div class="settings-actions">
+          <button class="btn btn-secondary" (click)="resetToDefaults()">
+            <i class="fas fa-undo"></i>
+            {{ translate('settings.resetDefaults') }}
+          </button>
+          
+          <button class="btn btn-success" (click)="exportSettings()">
+            <i class="fas fa-download"></i>
+            {{ translate('settings.exportSettings') }}
+          </button>
+          
+          <button class="btn btn-primary" (click)="importSettings()">
+            <i class="fas fa-upload"></i>
+            {{ translate('settings.importSettings') }}
+          </button>
+        </div>
+
+        <!-- Test Notifications -->
+        <div class="settings-section">
+          <div class="section-header">
+            <h3>
+              <i class="fas fa-vial"></i>
+              {{ translate('settings.testNotifications') }}
+            </h3>
+            <p>{{ translate('settings.testNotificationsDescription') }}</p>
+          </div>
+          
+          <div class="test-buttons">
+            <button class="btn btn-info" (click)="testNotification('info')">
+              <i class="fas fa-info-circle"></i>
+              {{ translate('notifications.info') }}
+            </button>
+            <button class="btn btn-success" (click)="testNotification('success')">
+              <i class="fas fa-check-circle"></i>
+              {{ translate('notifications.success') }}
+            </button>
+            <button class="btn btn-warning" (click)="testNotification('warning')">
+              <i class="fas fa-exclamation-triangle"></i>
+              {{ translate('notifications.warning') }}
+            </button>
+            <button class="btn btn-danger" (click)="testNotification('error')">
+              <i class="fas fa-times-circle"></i>
+              {{ translate('notifications.error') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    

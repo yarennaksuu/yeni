@@ -1,0 +1,161 @@
+    <div class="dashboard-container">
+      <div class="dashboard-header">
+        <h2>System Dashboard</h2>
+        <div class="status-indicator">
+          <span class="status-dot" [class]="systemStatus.toLowerCase()"></span>
+          <span class="status-text">{{ systemStatus }}</span>
+        </div>
+      </div>
+
+      <!-- System Stats Cards -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon processes"></div>
+          <div class="stat-content">
+            <div class="stat-value">{{ stats.totalProcesses }}</div>
+            <div class="stat-label">Total Processes</div>
+          </div>
+        </div>
+
+        <div class="stat-card threat">
+          <div class="stat-icon threats"></div>
+          <div class="stat-content">
+            <div class="stat-value">{{ stats.detectedThreats }}</div>
+            <div class="stat-label">Threats Detected</div>
+          </div>
+        </div>
+
+        <div class="stat-card terminated">
+          <div class="stat-icon killed"></div>
+          <div class="stat-content">
+            <div class="stat-value">{{ stats.killedProcesses }}</div>
+            <div class="stat-label">Processes Terminated</div>
+          </div>
+        </div>
+
+        <div class="stat-card uptime">
+          <div class="stat-icon time"></div>
+          <div class="stat-content">
+            <div class="stat-value">{{ formatUptime(stats.uptime) }}</div>
+            <div class="stat-label">System Uptime</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Control Panel -->
+      <div class="control-panel">
+        <div class="control-section">
+          <h3>Quick Actions</h3>
+          <div class="control-buttons">
+            <button 
+              class="btn-action start"
+              [disabled]="isScanning || isDaemonRunning"
+              (click)="startScan()">
+              {{ isScanning ? 'Scanning...' : 'Start Scan' }}
+            </button>
+            
+            <button 
+              class="btn-action daemon"
+              [class.active]="isDaemonRunning"
+              (click)="toggleDaemon()">
+              {{ isDaemonRunning ? 'Stop Daemon' : 'Start Daemon' }}
+            </button>
+            
+            <button 
+              class="btn-action refresh"
+              (click)="refreshStats()">
+              Refresh Stats
+            </button>
+
+            <button 
+              class="btn-action emergency"
+              (click)="emergencyStop()">
+              Emergency Stop
+            </button>
+          </div>
+        </div>
+
+        <div class="daemon-config" *ngIf="isDaemonRunning">
+          <h4>Daemon Configuration</h4>
+          <div class="config-row">
+            <span>Scan Interval:</span>
+            <span>{{ scanInterval }}ms</span>
+          </div>
+          <div class="config-row">
+            <span>Mode:</span>
+            <span [class]="isDryRun ? 'dry-run' : 'active'">
+              {{ isDryRun ? 'Dry Run' : 'Active' }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="activity-section">
+        <div class="section-header">
+          <h3>Recent Activity</h3>
+          <button class="btn-clear" (click)="clearActivity()">Clear</button>
+        </div>
+        
+        <div class="activity-list" *ngIf="recentActivities.length > 0; else noActivity">
+          <div 
+            *ngFor="let activity of recentActivities" 
+            class="activity-item"
+            [class]="activity.type">
+            
+            <div class="activity-icon" [class]="activity.type"></div>
+            
+            <div class="activity-content">
+              <div class="activity-message">{{ activity.message }}</div>
+              <div class="activity-details" *ngIf="activity.processName || activity.pid">
+                <span *ngIf="activity.processName">Process: {{ activity.processName }}</span>
+                <span *ngIf="activity.pid">PID: {{ activity.pid }}</span>
+              </div>
+            </div>
+            
+            <div class="activity-time">{{ formatTime(activity.timestamp) }}</div>
+          </div>
+        </div>
+
+        <ng-template #noActivity>
+          <div class="no-activity">
+            <div class="no-activity-icon"></div>
+            <p>No recent activity</p>
+          </div>
+        </ng-template>
+      </div>
+
+      <!-- System Health -->
+      <div class="health-section">
+        <h3>System Health</h3>
+        <div class="health-metrics">
+          <div class="health-item">
+            <span class="health-label">Scanner Status:</span>
+            <span class="health-value" [class]="scannerHealth.toLowerCase()">
+              {{ scannerHealth }}
+            </span>
+          </div>
+          
+          <div class="health-item">
+            <span class="health-label">Policy Engine:</span>
+            <span class="health-value" [class]="policyEngineHealth.toLowerCase()">
+              {{ policyEngineHealth }}
+            </span>
+          </div>
+          
+          <div class="health-item">
+            <span class="health-label">Kill System:</span>
+            <span class="health-value" [class]="killSystemHealth.toLowerCase()">
+              {{ killSystemHealth }}
+            </span>
+          </div>
+          
+          <div class="health-item">
+            <span class="health-label">Logging:</span>
+            <span class="health-value" [class]="loggingHealth.toLowerCase()">
+              {{ loggingHealth }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>

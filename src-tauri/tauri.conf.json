@@ -1,0 +1,51 @@
+{
+  "productName": "EDR Kill Switch",
+  "version": "1.0.0",
+  "identifier": "com.edrkillswitch.app",
+  "build": {
+    "beforeBuildCommand": "npm run build",
+    "beforeDevCommand": "npm run start",
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:4200"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "EDR Kill Switch",
+        "width": 1200,
+        "height": 800,
+        "resizable": false,
+        "center": true,
+        "decorations": false,
+        "alwaysOnTop": false,
+        "skipTaskbar": false,
+        "transparent": true,
+        "shadow": true,
+        "minWidth": 1200,
+        "minHeight": 800,
+        "maxWidth": 1200,
+        "maxHeight": 800
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "category": "Utility",
+    "copyright": "Copyright © 2024",
+    "icon": [
+      "icons/edr-32x32.png",
+      "icons/edr-128x128.png",
+      "icons/edr-128x128@2x.png",
+      "icons/edr-icon.icns",
+      "icons/edr-icon.ico"
+    ],
+    "targets": "all",
+    "windows": {
+      "digestAlgorithm": "sha256",
+      "webviewInstallMode": {
+        "type": "embedBootstrapper"
+      }
+    }
+  },
+  "plugins": {}
+}

@@ -1,0 +1,231 @@
+    <div class="log-viewer-container">
+      <div class="viewer-header">
+        <div class="header-content">
+          <h2>System Logs</h2>
+          <div class="log-stats">
+            <span class="stat-badge info">Info: {{ getLogCountByLevel('info') }}</span>
+            <span class="stat-badge warn">Warn: {{ getLogCountByLevel('warn') }}</span>
+            <span class="stat-badge error">Error: {{ getLogCountByLevel('error') }}</span>
+          </div>
+        </div>
+
+        <div class="header-controls">
+          <button class="btn-control" (click)="toggleAutoScroll()" [class.active]="autoScroll">
+            {{ autoScroll ? 'Pause Auto-Scroll' : 'Enable Auto-Scroll' }}
+          </button>
+          <button class="btn-control" (click)="refreshLogs()">Refresh</button>
+          <button class="btn-control" (click)="exportLogs()">Export</button>
+          <button class="btn-control danger" (click)="clearLogs()">Clear All</button>
+        </div>
+      </div>
+
+      <!-- Log Filters -->
+      <div class="filters-panel" [class.collapsed]="filtersCollapsed">
+        <div class="filters-header" (click)="toggleFilters()">
+          <span>Filters</span>
+          <span class="toggle-icon">{{ filtersCollapsed ? '▼' : '▲' }}</span>
+        </div>
+
+        <div class="filters-content" *ngIf="!filtersCollapsed">
+          <div class="filter-group">
+            <label>Search:</label>
+            <input 
+              type="text" 
+              [(ngModel)]="filter.search"
+              (input)="applyFilters()"
+              placeholder="Search logs..."
+              class="search-input">
+          </div>
+
+          <div class="filter-group">
+            <label>Log Levels:</label>
+            <div class="checkbox-group">
+              <label class="checkbox-label" *ngFor="let level of logLevels">
+                <input 
+                  type="checkbox" 
+                  [checked]="filter.level.includes(level)"
+                  (change)="toggleLevelFilter(level)">
+                <span [class]="'level-' + level">{{ level.toUpperCase() }}</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <label>Event Types:</label>
+            <div class="checkbox-group">
+              <label class="checkbox-label" *ngFor="let event of eventTypes">
+                <input 
+                  type="checkbox" 
+                  [checked]="filter.event.includes(event)"
+                  (change)="toggleEventFilter(event)">
+                <span>{{ event }}</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <label>Process Name:</label>
+            <input 
+              type="text" 
+              [(ngModel)]="filter.processName"
+              (input)="applyFilters()"
+              placeholder="Filter by process name..."
+              class="search-input">
+          </div>
+
+          <div class="filter-group">
+            <label>Date Range:</label>
+            <div class="date-inputs">
+              <input 
+                type="datetime-local" 
+                [(ngModel)]="filter.dateFrom"
+                (change)="applyFilters()"
+                class="date-input">
+              <span>to</span>
+              <input 
+                type="datetime-local" 
+                [(ngModel)]="filter.dateTo"
+                (change)="applyFilters()"
+                class="date-input">
+            </div>
+          </div>
+
+          <div class="filter-actions">
+            <button class="btn-secondary" (click)="resetFilters()">Reset Filters</button>
+            <span class="filter-count">{{ filteredLogs.length }} of {{ allLogs.length }} logs</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Log Display -->
+      <div class="logs-container" #logsContainer>
+        <div class="logs-header">
+          <div class="column-header timestamp">Timestamp</div>
+          <div class="column-header level">Level</div>
+          <div class="column-header event">Event</div>
+          <div class="column-header process">Process</div>
+          <div class="column-header message">Message</div>
+          <div class="column-header actions">Actions</div>
+        </div>
+
+        <div class="logs-body">
+          <div 
+            *ngFor="let log of filteredLogs; trackBy: trackByLogId; let i = index"
+            class="log-row"
+            [class]="'log-' + log.level"
+            [class.highlighted]="selectedLog?.id === log.id"
+            (click)="selectLog(log)">
+            
+            <div class="log-cell timestamp">
+              <span class="timestamp-full">{{ formatTimestamp(log.timestamp) }}</span>
+              <span class="timestamp-short">{{ formatTime(log.timestamp) }}</span>
+            </div>
+
+            <div class="log-cell level">
+              <span class="level-badge" [class]="'level-' + log.level">
+                {{ log.level.toUpperCase() }}
+              </span>
+            </div>
+
+            <div class="log-cell event">
+              <span class="event-badge" [class]="getEventClass(log.event)">
+                {{ log.event }}
+              </span>
+            </div>
+
+            <div class="log-cell process">
+              <div class="process-info">
+                <span class="process-name" *ngIf="log.processName">{{ log.processName }}</span>
+                <span class="process-pid" *ngIf="log.pid">PID: {{ log.pid }}</span>
+              </div>
+            </div>
+
+            <div class="log-cell message">
+              <div class="message-text" [innerHTML]="highlightSearch(log.message)"></div>
+              <div class="rule-name" *ngIf="log.ruleName">Rule: {{ log.ruleName }}</div>
+            </div>
+
+            <div class="log-cell actions">
+              <button class="btn-action" (click)="viewLogDetails(log, $event)">Details</button>
+              <button class="btn-action" (click)="copyLogEntry(log, $event)">Copy</button>
+            </div>
+          </div>
+
+          <div class="no-logs" *ngIf="filteredLogs.length === 0">
+            <div class="no-logs-icon">📋</div>
+            <h3>No logs found</h3>
+            <p>{{ allLogs.length === 0 ? 'No log entries available.' : 'No logs match the current filters.' }}</p>
+          </div>
+        </div>
+
+        <!-- Real-time Log Stream -->
+        <div class="live-indicator" *ngIf="isConnected && autoScroll">
+          <span class="live-dot"></span>
+          Live Stream Active
+        </div>
+      </div>
+
+      <!-- Log Details Modal -->
+      <div class="modal-overlay" *ngIf="showLogDetails" (click)="closeLogDetails()">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h3>Log Entry Details</h3>
+            <button class="modal-close" (click)="closeLogDetails()">×</button>
+          </div>
+
+          <div class="modal-body" *ngIf="selectedLog">
+            <div class="detail-section">
+              <h4>Basic Information</h4>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <label>Timestamp:</label>
+                  <span>{{ formatTimestamp(selectedLog.timestamp) }}</span>
+                </div>
+                <div class="detail-item">
+                  <label>Level:</label>
+                  <span class="level-badge" [class]="'level-' + selectedLog.level">
+                    {{ selectedLog.level.toUpperCase() }}
+                  </span>
+                </div>
+                <div class="detail-item">
+                  <label>Event:</label>
+                  <span class="event-badge" [class]="getEventClass(selectedLog.event)">
+                    {{ selectedLog.event }}
+                  </span>
+                </div>
+                <div class="detail-item" *ngIf="selectedLog.processName">
+                  <label>Process:</label>
+                  <span>{{ selectedLog.processName }}</span>
+                </div>
+                <div class="detail-item" *ngIf="selectedLog.pid">
+                  <label>PID:</label>
+                  <span>{{ selectedLog.pid }}</span>
+                </div>
+                <div class="detail-item" *ngIf="selectedLog.ruleName">
+                  <label>Rule:</label>
+                  <span>{{ selectedLog.ruleName }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="detail-section">
+              <h4>Message</h4>
+              <div class="message-content">{{ selectedLog.message }}</div>
+            </div>
+
+            <div class="detail-section" *ngIf="selectedLog.details">
+              <h4>Additional Details</h4>
+              <pre class="details-json">{{ formatDetails(selectedLog.details) }}</pre>
+            </div>
+
+            <div class="detail-actions">
+              <button class="btn-secondary" (click)="copyLogEntry(selectedLog)">Copy Log Entry</button>
+              <button class="btn-secondary" (click)="filterByProcess(selectedLog)" *ngIf="selectedLog.processName">
+                Filter by Process
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+ 

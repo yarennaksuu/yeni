@@ -1,0 +1,138 @@
+<!-- src/app/components/process-scanner/process-scanner.component.html -->
+<div class="process-scanner">
+  <mat-card class="header-card">
+    <mat-card-header>
+      <mat-card-title>Process Scanner</mat-card-title>
+      <mat-card-subtitle>Real-time process monitoring</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-actions>
+      <button mat-raised-button color="primary" [disabled]="isScanning" (click)="loadProcesses()">
+        <mat-icon>{{isScanning ? 'hourglass_empty' : 'search'}}</mat-icon>
+        {{isScanning ? 'Scanning...' : 'Scan'}}
+      </button>
+
+      <mat-slide-toggle [(ngModel)]="isDryRun" class="dry-run-toggle">
+        Dry Run Mode
+      </mat-slide-toggle>
+    </mat-card-actions>
+
+
+  </mat-card>
+  <div class="scanner-section">
+    <mat-card class="table-card">
+      <mat-card-header>
+        <mat-card-title>Processes ({{filteredProcesses.length}})</mat-card-title>
+      </mat-card-header>
+      <mat-card-content class="scanner-section">
+        <table mat-table [dataSource]="filteredProcesses" class="process-table">
+        </table>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+
+  <!-- Filters -->
+  <mat-card class="filter-card">
+    <mat-card-content>
+      <form [formGroup]="filterForm" class="filter-form">
+        <mat-form-field>
+          <mat-label>Process Name</mat-label>
+          <input matInput formControlName="processName" placeholder="Filter by name">
+        </mat-form-field>
+
+        <mat-form-field>
+          <mat-label>Status</mat-label>
+          <mat-select formControlName="status">
+            <mat-option value="all">All</mat-option>
+            <mat-option value="whitelisted">Whitelisted</mat-option>
+            <mat-option value="blacklisted">Blacklisted</mat-option>
+            <mat-option value="unmatched">Unmatched</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Process Table -->
+  <mat-card class="table-card">
+    <mat-card-header>
+      <mat-card-title>Processes ({{filteredProcesses.length}})</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <table mat-table [dataSource]="filteredProcesses" class="process-table">
+        <!-- Status Column -->
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let process">
+            <mat-icon [color]="getStatusColor(process)">
+              {{getStatusIcon(process)}}
+            </mat-icon>
+          </td>
+        </ng-container>
+
+        <!-- PID Column -->
+        <ng-container matColumnDef="pid">
+          <th mat-header-cell *matHeaderCellDef>PID</th>
+          <td mat-cell *matCellDef="let process">{{process.pid}}</td>
+        </ng-container>
+
+        <!-- Name Column -->
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef>Name</th>
+          <td mat-cell *matCellDef="let process">
+            <span>{{process.name}}</span>
+          </td>
+        </ng-container>
+
+        <!-- Path Column -->
+        <ng-container matColumnDef="path">
+          <th mat-header-cell *matHeaderCellDef>Path</th>
+          <td mat-cell *matCellDef="let process">{{process.path || 'N/A'}}</td>
+        </ng-container>
+
+        <!-- Rule Column -->
+        <ng-container matColumnDef="rule">
+          <th mat-header-cell *matHeaderCellDef>Rule</th>
+          <td mat-cell *matCellDef="let process">
+            <mat-chip *ngIf="process.matchedRule" [color]="process.isBlacklisted ? 'warn' : 'primary'" selected>
+              {{process.matchedRule}}
+            </mat-chip>
+            <span *ngIf="!process.matchedRule">-</span>
+          </td>
+        </ng-container>
+
+        <!-- CPU Column -->
+        <ng-container matColumnDef="cpu">
+          <th mat-header-cell *matHeaderCellDef>CPU</th>
+          <td mat-cell *matCellDef="let process">{{process.cpuUsage}}%</td>
+        </ng-container>
+
+        <!-- Memory Column -->
+        <ng-container matColumnDef="memory">
+          <th mat-header-cell *matHeaderCellDef>Memory</th>
+          <td mat-cell *matCellDef="let process">{{formatMemoryUsage(process.memoryUsage)}}</td>
+        </ng-container>
+
+        <!-- Actions Column -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Actions</th>
+          <td mat-cell *matCellDef="let process">
+            <button mat-icon-button [matMenuTriggerFor]="menu">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #menu="matMenu">
+              <button mat-menu-item (click)="killProcess(process)">
+                <mat-icon>dangerous</mat-icon>
+                <span>{{isDryRun ? 'Dry Run Kill' : 'Terminate'}}</span>
+              </button>
+            </mat-menu>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;" [class.blacklisted-row]="row.isBlacklisted"
+          [class.whitelisted-row]="row.isWhitelisted"></tr>
+      </table>
+    </mat-card-content>
+  </mat-card>
+</div>

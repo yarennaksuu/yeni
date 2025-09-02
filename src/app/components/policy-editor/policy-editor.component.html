@@ -1,0 +1,479 @@
+@Component
+  selector: 'app-policy-editor',
+  standalone: true,
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  template: `
+    <div class="policy-editor-container">
+      <!-- Header Section -->
+      <div class="editor-header">
+        <div class="header-content">
+            <i class="icon-shield"></i>
+            {{ translate('policies.title') }}
+          <p class="header-subtitle">{{ translate('policies.subtitle') }}</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-secondary" (click)="importConfig()">
+            <i class="icon-upload"></i>
+            {{ translate('policies.import') }}
+          </button>
+          <button class="btn btn-secondary" (click)="exportConfig()">
+            <i class="icon-download"></i>
+            {{ translate('policies.export') }}
+          </button>
+          <button class="btn btn-primary" (click)="saveConfiguration()" [disabled]="!hasChanges">
+            <i class="icon-save"></i>
+            {{ translate('action.save') }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Policy Statistics -->
+      <div class="policy-stats">
+        <div class="stat-card">
+          <div class="stat-icon blacklist">
+            <i class="icon-block"></i>
+          </div>
+          <div class="stat-content">
+            <span class="stat-value">{{ config.blacklist.length }}</span>
+            <span class="stat-label">{{ translate('policies.blacklistRules') }}</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon whitelist">
+            <i class="icon-shield"></i>
+          </div>
+          <div class="stat-content">
+            <span class="stat-value">{{ config.whitelist.length }}</span>
+            <span class="stat-label">{{ translate('policies.whitelistRules') }}</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon active">
+            <i class="icon-check"></i>
+          </div>
+          <div class="stat-content">
+            <span class="stat-value">{{ getActiveRules() }}</span>
+            <span class="stat-label">{{ translate('policies.activeRules') }}</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon critical">
+            <i class="icon-warning"></i>
+          </div>
+          <div class="stat-content">
+            <span class="stat-value">{{ getCriticalRules() }}</span>
+            <span class="stat-label">{{ translate('policies.criticalRules') }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Policy Settings -->
+      <div class="policy-settings">
+        <div class="settings-header">
+          <h3>
+            <i class="icon-settings"></i>
+            {{ translate('policies.settings') }}
+          </h3>
+        </div>
+        
+        <div class="settings-grid">
+          <div class="setting-item">
+            <div class="setting-info">
+              <label>{{ translate('policies.realTimeProtection') }}</label>
+              <p>{{ translate('policies.realTimeProtectionDesc') }}</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" [(ngModel)]="config.settings.enableRealTimeProtection" (change)="markAsChanged()">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label>{{ translate('policies.hashChecking') }}</label>
+              <p>{{ translate('policies.hashCheckingDesc') }}</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" [(ngModel)]="config.settings.enableHashChecking" (change)="markAsChanged()">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label>{{ translate('policies.networkMonitoring') }}</label>
+              <p>{{ translate('policies.networkMonitoringDesc') }}</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" [(ngModel)]="config.settings.enableNetworkMonitoring" (change)="markAsChanged()">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label>{{ translate('policies.autoUpdate') }}</label>
+              <p>{{ translate('policies.autoUpdateDesc') }}</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" [(ngModel)]="config.settings.autoUpdateRules" (change)="markAsChanged()">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Navigation -->
+      <div class="tab-navigation">
+        <button 
+          class="tab-button"
+          [class.active]="activeTab === 'blacklist'"
+          (click)="activeTab = 'blacklist'">
+          <i class="icon-block"></i>
+          {{ translate('policies.blacklist') }} ({{ config.blacklist.length }})
+        </button>
+        <button 
+          class="tab-button"
+          [class.active]="activeTab === 'whitelist'"
+          (click)="activeTab = 'whitelist'">
+          <i class="icon-shield"></i>
+          {{ translate('policies.whitelist') }} ({{ config.whitelist.length }})
+        </button>
+        <button 
+          class="tab-button"
+          [class.active]="activeTab === 'templates'"
+          (click)="activeTab = 'templates'">
+          <i class="icon-template"></i>
+          {{ translate('policies.templates') }}
+        </button>
+      </div>
+
+      <!-- Blacklist Tab -->
+      <div class="tab-content" *ngIf="activeTab === 'blacklist'">
+        <div class="rules-section">
+          <div class="section-toolbar">
+            <div class="search-bar">
+              <i class="icon-search"></i>
+              <input type="text" [(ngModel)]="blacklistSearch" 
+                     [placeholder]="translate('policies.searchRules')"
+                     (input)="filterRules()">
+            </div>
+            <div class="toolbar-actions">
+              <select class="filter-select" [(ngModel)]="blacklistFilter" (change)="filterRules()">
+                <option value="all">{{ translate('policies.allRules') }}</option>
+                <option value="enabled">{{ translate('policies.enabledOnly') }}</option>
+                <option value="disabled">{{ translate('policies.disabledOnly') }}</option>
+                <option value="critical">{{ translate('policies.criticalOnly') }}</option>
+              </select>
+              <button class="btn btn-success" (click)="addRule('blacklist')">
+                <i class="icon-add"></i>
+                {{ translate('policies.addRule') }}
+              </button>
+            </div>
+          </div>
+
+          <div class="rules-list" *ngIf="filteredBlacklistRules.length > 0; else noBlacklistRules">
+            <div 
+              *ngFor="let rule of filteredBlacklistRules; let i = index; trackBy: trackByRuleId"
+              class="rule-card blacklist-rule"
+              [class.disabled]="!rule.enabled"
+              [class]="'severity-' + rule.severity">
+              
+              <div class="rule-header">
+                <div class="rule-toggle">
+                  <label class="toggle-switch small">
+                    <input type="checkbox" [(ngModel)]="rule.enabled" (change)="markAsChanged()">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                
+                <div class="rule-info">
+                  <div class="rule-title">
+                    <span class="rule-id">{{ rule.id }}</span>
+                    <span class="severity-badge" [class]="'severity-' + rule.severity">
+                      {{ translate('policies.severity.' + rule.severity) }}
+                    </span>
+                  </div>
+                  <div class="rule-meta">
+                    <span class="rule-type">{{ translate('policies.ruleType.' + rule.ruleType) }}</span>
+                    <span class="rule-date">{{ formatDate(rule.lastModified) }}</span>
+                  </div>
+                </div>
+                
+                <div class="rule-actions">
+                  <button class="btn-icon test-btn" (click)="testRule(rule)" [title]="translate('policies.testRule')">
+                    <i class="icon-test"></i>
+                  </button>
+                  <button class="btn-icon edit-btn" (click)="editRule('blacklist', i)">
+                    <i class="icon-edit"></i>
+                  </button>
+                  <button class="btn-icon delete-btn" (click)="deleteRule('blacklist', i)">
+                    <i class="icon-delete"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="rule-content">
+                <div class="rule-value">
+                  <strong>{{ translate('policies.value') }}:</strong>                  <code>{{ rule.value }}</code>
+                </div>
+                <div class="rule-description" *ngIf="rule.description">
+                  {{ rule.description }}
+                </div>
+                <div class="rule-tags" *ngIf="rule.tags.length > 0">
+                  <span class="tag" *ngFor="let tag of rule.tags">{{ tag }}</span>
+                </div>
+                <div class="rule-action">
+                  <strong>{{ translate('policies.action') }}:</strong>
+                  <span class="action-badge" [class]="'action-' + rule.autoAction">
+                    {{ translate('policies.autoAction.' + rule.autoAction) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <ng-template #noBlacklistRules>
+            <div class="empty-state">
+              <i class="icon-block"></i>
+              <h4>{{ translate('policies.noBlacklistRules') }}</h4>
+              <p>{{ translate('policies.noBlacklistRulesDesc') }}</p>
+              <button class="btn btn-primary" (click)="addRule('blacklist')">
+                {{ translate('policies.addFirstRule') }}
+              </button>
+            </div>
+          </ng-template>
+        </div>
+      </div>
+
+      <!-- Whitelist Tab -->
+      <div class="tab-content" *ngIf="activeTab === 'whitelist'">
+        <div class="rules-section">
+          <div class="section-toolbar">
+            <div class="search-bar">
+              <i class="icon-search"></i>
+              <input type="text" [(ngModel)]="whitelistSearch" 
+                     [placeholder]="translate('policies.searchRules')"
+                     (input)="filterRules()">
+            </div>
+            <div class="toolbar-actions">
+              <select class="filter-select" [(ngModel)]="whitelistFilter" (change)="filterRules()">
+                <option value="all">{{ translate('policies.allRules') }}</option>
+                <option value="enabled">{{ translate('policies.enabledOnly') }}</option>
+                <option value="disabled">{{ translate('policies.disabledOnly') }}</option>
+                <option value="system">{{ translate('policies.systemOnly') }}</option>
+              </select>
+              <button class="btn btn-success" (click)="addRule('whitelist')">
+                <i class="icon-add"></i>
+                {{ translate('policies.addRule') }}
+              </button>
+            </div>
+          </div>
+
+          <div class="rules-list" *ngIf="filteredWhitelistRules.length > 0; else noWhitelistRules">
+            <div 
+              *ngFor="let rule of filteredWhitelistRules; let i = index; trackBy: trackByRuleId"
+              class="rule-card whitelist-rule"
+              [class.disabled]="!rule.enabled">
+              
+              <div class="rule-header">
+                <div class="rule-toggle">
+                  <label class="toggle-switch small">
+                    <input type="checkbox" [(ngModel)]="rule.enabled" (change)="markAsChanged()">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                
+                <div class="rule-info">
+                  <div class="rule-title">
+                    <span class="rule-id">{{ rule.id }}</span>
+                  </div>
+                  <div class="rule-meta">
+                    <span class="rule-type">{{ translate('policies.ruleType.' + rule.ruleType) }}</span>
+                    <span class="rule-date">{{ formatDate(rule.lastModified) }}</span>
+                  </div>
+                </div>
+                
+                <div class="rule-actions">
+                  <button class="btn-icon test-btn" (click)="testRule(rule)" [title]="translate('policies.testRule')">
+                    <i class="icon-test"></i>
+                  </button>
+                  <button class="btn-icon edit-btn" (click)="editRule('whitelist', i)">
+                    <i class="icon-edit"></i>
+                  </button>
+                  <button class="btn-icon delete-btn" (click)="deleteRule('whitelist', i)" 
+                          [disabled]="isSystemRule(rule)">
+                    <i class="icon-delete"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="rule-content">
+                <div class="rule-value">
+                  <strong>{{ translate('policies.value') }}:</strong> 
+                  <code>{{ rule.value }}</code>
+                </div>
+                <div class="rule-description" *ngIf="rule.description">
+                  {{ rule.description }}
+                </div>
+                <div class="rule-tags" *ngIf="rule.tags.length > 0">
+                  <span class="tag" *ngFor="let tag of rule.tags">{{ tag }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <ng-template #noWhitelistRules>
+            <div class="empty-state">
+              <i class="icon-shield"></i>
+              <h4>{{ translate('policies.noWhitelistRules') }}</h4>
+              <p>{{ translate('policies.noWhitelistRulesDesc') }}</p>
+              <button class="btn btn-primary" (click)="addRule('whitelist')">
+                {{ translate('policies.addFirstRule') }}
+              </button>
+            </div>
+          </ng-template>
+        </div>
+      </div>
+
+      <!-- Templates Tab -->
+      <div class="tab-content" *ngIf="activeTab === 'templates'">
+        <div class="templates-section">
+          <div class="section-header">
+            <h3>{{ translate('policies.ruleTemplates') }}</h3>
+            <p>{{ translate('policies.ruleTemplatesDesc') }}</p>
+          </div>
+
+          <div class="templates-grid">
+            <div 
+              *ngFor="let template of ruleTemplates"
+              class="template-card"
+              (click)="useTemplate(template)">
+              <div class="template-icon">
+                <i [class]="template.icon"></i>
+              </div>
+              <div class="template-content">
+                <h4>{{ translate('templates.' + template.id + '.title') }}</h4>
+                <p>{{ translate('templates.' + template.id + '.description') }}</p>
+                <div class="template-meta">
+                  <span class="template-type" [class]="template.type">
+                    {{ translate('policies.' + template.type) }}
+                  </span>
+                  <span class="template-rules">{{ template.rules.length }} rules</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rule Editor Modal -->
+      <div class="modal-overlay" *ngIf="showRuleEditor" (click)="closeRuleEditor()">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h3>{{ editingRule ? translate('policies.editRule') : translate('policies.addRule') }}</h3>
+            <button class="modal-close" (click)="closeRuleEditor()">×</button>
+          </div>
+
+          <form [formGroup]="ruleForm" (ngSubmit)="saveRule()">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="ruleId">{{ translate('policies.ruleId') }}</label>
+                <input 
+                  id="ruleId"
+                  type="text" 
+                  formControlName="id"
+                  class="form-control"
+                  [placeholder]="translate('policies.ruleIdPlaceholder')">
+              </div>
+
+              <div class="form-group">
+                <label for="ruleType">{{ translate('policies.ruleType.label') }}</label>
+                <select id="ruleType" formControlName="ruleType" class="form-control">
+                  <option value="name">{{ translate('policies.ruleType.name') }}</option>
+                  <option value="path">{{ translate('policies.ruleType.path') }}</option>
+                  <option value="hash">{{ translate('policies.ruleType.hash') }}</option>
+                  <option value="command">{{ translate('policies.ruleType.command') }}</option>
+                  <option value="registry">{{ translate('policies.ruleType.registry') }}</option>
+                  <option value="network">{{ translate('policies.ruleType.network') }}</option>
+                </select>
+              </div>
+
+              <div class="form-group full-width">
+                <label for="ruleValue">{{ translate('policies.ruleValue') }}</label>
+                <input 
+                  id="ruleValue"
+                  type="text" 
+                  formControlName="value"
+                  class="form-control"
+                  [placeholder]="getValuePlaceholder()">
+                <div class="form-help">{{ getValueHelpText() }}</div>
+              </div>
+
+              <div class="form-group">
+                <label for="severity">{{ translate('policies.severity.label') }}</label>
+                <select id="severity" formControlName="severity" class="form-control">
+                  <option value="low">{{ translate('policies.severity.low') }}</option>
+                  <option value="medium">{{ translate('policies.severity.medium') }}</option>
+                  <option value="high">{{ translate('policies.severity.high') }}</option>
+                  <option value="critical">{{ translate('policies.severity.critical') }}</option>
+                </select>
+              </div>
+
+              <div class="form-group" *ngIf="editingList === 'blacklist'">
+                <label for="autoAction">{{ translate('policies.autoAction.label') }}</label>
+                <select id="autoAction" formControlName="autoAction" class="form-control">
+                  <option value="alert">{{ translate('policies.autoAction.alert') }}</option>
+                  <option value="quarantine">{{ translate('policies.autoAction.quarantine') }}</option>
+                  <option value="kill">{{ translate('policies.autoAction.kill') }}</option>
+                  <option value="none">{{ translate('policies.autoAction.none') }}</option>
+                </select>
+              </div>
+
+              <div class="form-group full-width">
+                <label for="ruleDescription">{{ translate('policies.description') }}</label>
+                <textarea 
+                  id="ruleDescription"
+                  formControlName="description"
+                  class="form-control"
+                  rows="3"
+                  [placeholder]="translate('policies.descriptionPlaceholder')"></textarea>
+              </div>
+
+              <div class="form-group full-width">
+                <label for="tags">{{ translate('policies.tags') }}</label>
+                <input 
+                  type="text" 
+                  [(ngModel)]="tagInput"
+                  [ngModelOptions]="{standalone: true}"
+                  class="form-control"
+                  [placeholder]="translate('policies.tagsPlaceholder')"
+                  (keyup.enter)="addTag()">
+                <div class="tags-container">
+                  <span class="tag" *ngFor="let tag of currentTags; let i = index">
+                    {{ tag }}
+                    <button type="button" class="tag-remove" (click)="removeTag(i)">×</button>
+                  </span>
+                </div>
+              </div>
+
+              <div class="form-group checkbox-group full-width">
+                <label class="checkbox-label">
+                  <input type="checkbox" formControlName="enabled">
+                  <span>{{ translate('policies.enableRule') }}</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" (click)="closeRuleEditor()">
+                {{ translate('action.cancel') }}
+              </button>
+              <button type="submit" class="btn btn-primary" [disabled]="ruleForm.invalid">
+                {{ editingRule ? translate('action.update') : translate('action.add') }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>

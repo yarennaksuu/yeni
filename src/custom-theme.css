@@ -1,0 +1,23 @@
+/* styles.css */
+
+/* Body için temel stil */
+body {
+  color-scheme: light;
+  background-color: var(--mat-sys-surface, #ffffff); /* fallback beyaz */
+  color: var(--mat-sys-on-surface, #000000); /* fallback siyah */
+  font-family: 'Roboto', sans-serif;
+  font-size: 16px;
+  margin: 0;
+}
+
+/* Örnek olarak primary ve tertiary renkleri değişken olarak tanımlayabiliriz */
+:root {
+  --primary-color: #3f51b5; /* indigo */
+  --tertiary-color: #2196f3; /* blue */
+}
+
+/* Örnek bir Angular Material bileşeni üzerine stil */
+.mat-button {
+  background-color: var(--primary-color);
+  color: #ffffff;
+}
