@@ -6,19 +6,19 @@
       <mat-card-subtitle>Real-time process monitoring</mat-card-subtitle>
     </mat-card-header>
     <mat-card-actions>
-      <button mat-raised-button color="primary" [disabled]="isScanning" (click)="loadProcesses()">
-        <mat-icon>{{isScanning ? 'hourglass_empty' : 'search'}}</mat-icon>
-        {{isScanning ? 'Scanning...' : 'Scan'}}
-      </button>
+      <div class="actions-grid">
+        <button mat-raised-button color="primary" [disabled]="isScanning" (click)="loadProcesses()">
+          <mat-icon>{{isScanning ? 'hourglass_empty' : 'search'}}</mat-icon>
+          {{isScanning ? 'Scanning...' : 'Scan'}}
+        </button>
 
-      <span class="spacer"></span>
+        <mat-slide-toggle [(ngModel)]="isDryRun" class="dry-run-toggle">Dry Run</mat-slide-toggle>
 
-      <mat-slide-toggle [(ngModel)]="isDryRun" class="dry-run-toggle">Dry Run</mat-slide-toggle>
-
-      <button mat-button (click)="toggleAutoRefresh()">
-        <mat-icon>{{ isAutoRefresh ? 'pause' : 'autorenew' }}</mat-icon>
-        {{ isAutoRefresh ? 'Stop Auto-refresh' : 'Start Auto-refresh' }}
-      </button>
+        <button mat-stroked-button (click)="toggleAutoRefresh()">
+          <mat-icon>{{ isAutoRefresh ? 'pause' : 'autorenew' }}</mat-icon>
+          {{ isAutoRefresh ? 'Stop Auto-refresh' : 'Start Auto-refresh' }}
+        </button>
+      </div>
     </mat-card-actions>
   </mat-card>
 

@@ -140,18 +140,14 @@ table.process-table {
 
 /* Header actions layout: wrap buttons nicely and stack on small screens */
 .header-card .mat-mdc-card-actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: block;
+}
+
+.header-card .actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
   align-items: center;
-}
-
-.header-card .mat-mdc-card-actions .spacer {
-  flex: 1 1 auto;
-}
-
-.header-card .mat-mdc-card-actions > * {
-  margin: 0;
 }
 
 .header-card .mat-mdc-card-actions .mdc-form-field {
@@ -160,15 +156,7 @@ table.process-table {
 }
 
 @media (max-width: 768px) {
-  .header-card .mat-mdc-card-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .header-card .mat-mdc-card-actions > * {
-    width: 100%;
-  }
-  .header-card .mat-mdc-card-actions .mdc-form-field {
-    width: 100%;
-    justify-content: space-between;
+  .header-card .actions-grid {
+    grid-template-columns: 1fr;
   }
 }
