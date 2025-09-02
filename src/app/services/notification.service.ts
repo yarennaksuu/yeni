@@ -30,11 +30,11 @@ export interface InAppNotification extends NotificationConfig {
   providedIn: 'root'
 })
 export class NotificationService {
-  showSuccess(arg0: string) {
-    throw new Error('Method not implemented.');
+  showSuccess(message: string) {
+    return this.success('Success', message);
   }
-  showError(arg0: string) {
-    throw new Error('Method not implemented.');
+  showError(message: string) {
+    return this.error('Error', message);
   }
   private readonly SETTINGS_KEY = 'edr-notification-settings';
   private notifications = new BehaviorSubject<InAppNotification[]>([]);
