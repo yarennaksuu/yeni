@@ -137,3 +137,34 @@ table.process-table {
 .whitelisted-row {
   background: rgba(33, 150, 243, 0.06);
 }
+
+/* Header actions layout: wrap buttons nicely and stack on small screens */
+.header-card .mat-mdc-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.header-card .mat-mdc-card-actions > * {
+  margin: 0;
+}
+
+.header-card .mat-mdc-card-actions .mdc-form-field {
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .header-card .mat-mdc-card-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .header-card .mat-mdc-card-actions > * {
+    width: 100%;
+  }
+  .header-card .mat-mdc-card-actions .mdc-form-field {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
