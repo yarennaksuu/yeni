@@ -227,6 +227,7 @@
       flex: 1;
       overflow-y: auto;
       max-height: calc(100vh - 400px);
+    }
 
       .log-row {
         display: grid;
@@ -549,7 +550,7 @@
       }
     }
   }
-}
+
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
@@ -560,6 +561,7 @@
 @media (max-width: 1024px) {
   .log-viewer-container {
     .logs-container {
+      overflow-y: scroll;
       .logs-header,
       .logs-body .log-row {
         grid-template-columns: 150px 60px 100px 120px 1fr 80px;

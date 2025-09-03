@@ -15,7 +15,6 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatTabsModule } from '@angular/material/tabs';
 import { TauriService } from '../../services/tauri.service';
 
 
@@ -51,11 +50,12 @@ interface ProcessInfo {
     MatSlideToggleModule,
     MatMenuModule,
     MatSnackBarModule,
-    MatTabsModule
+    MatTableModule,
+    MatSnackBarModule
   ],
 
   templateUrl: './process-scanner.component.html',
-  styleUrl: './process-scanner.component.css'
+styleUrls: ['./process-scanner.component.css'] 
 })
 export class ProcessScannerComponent implements OnInit, OnDestroy {
   processes: ProcessInfo[] = [];
@@ -65,9 +65,9 @@ export class ProcessScannerComponent implements OnInit, OnDestroy {
   isAutoRefresh = false;
   isDryRun = false;
   refreshInterval: any;
-   settingsForm!: FormGroup; // formu tanımla
-  isElevated = false;        // Admin durumu
-  Platform = '';             // platform bilgisi
+   settingsForm!: FormGroup;
+  isElevated = false;
+  Platform = '';
 
   
   displayedColumns: string[] = ['status', 'pid', 'name', 'path', 'rule', 'cpu', 'memory', 'actions'];
@@ -83,16 +83,16 @@ export class ProcessScannerComponent implements OnInit, OnDestroy {
       rule: ['all']
     });
 
-     this.settingsForm = this.fb.group({
-      autoRefreshInterval: [5],      // default 5 saniye
-      theme: ['light'],              // default light theme
-      enableNotifications: [true],   // default true
-      confirmBeforeKill: [true]      // default true
+       this.settingsForm = this.fb.group({
+      autoRefreshInterval: [5],
+      theme: ['light'],
+      enableNotifications: [true],
+      confirmBeforeKill: [true]
     });
   }
   saveSettings() {
-  console.log('Settings saved:', this.settingsForm.value);
-  this.snackBar.open('Settings saved', 'Close', { duration: 2000 });
+      this.snackBar.open('Settings saved', 'Close', { duration: 2000 });
+  
 }
 
   ngOnInit() {

@@ -2,12 +2,12 @@
   "productName": "EDR Kill Switch",
   "version": "1.0.0",
   "identifier": "com.edrkillswitch.app",
-  "build": {
-    "beforeBuildCommand": "npm run build",
-    "beforeDevCommand": "npm run start",
-    "frontendDist": "../dist",
-    "devUrl": "http://localhost:4200"
-  },
+"build": {
+  "beforeBuildCommand": "npm run build",
+  "beforeDevCommand": "npm run start",
+  "frontendDist": "../dist",
+  "devUrl": "http://localhost:1420"
+},
   "app": {
     "windows": [
       {
@@ -19,7 +19,6 @@
         "decorations": false,
         "alwaysOnTop": false,
         "skipTaskbar": false,
-        "transparent": true,
         "shadow": true,
         "minWidth": 1200,
         "minHeight": 800,

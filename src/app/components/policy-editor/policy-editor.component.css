@@ -1,4 +1,3 @@
- styles:
     .policy-editor-container {
       height: 100%;
       overflow-y: auto;
@@ -305,8 +304,11 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
+      
+  overflow-y: scroll;
+  border: 1px solid #ccc;
     }
-
+  
     .rule-card {
       background: rgba(255, 255, 255, 0.03);
       border-radius: 12px;

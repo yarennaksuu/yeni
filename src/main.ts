@@ -4,28 +4,10 @@ import { provideRouter } from '@angular/router';
 import { importProvidersFrom } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-
-import { SettingsComponent } from './app/components/settings/settings.component';
-
-const routes = [
-  { 
-    path: '', 
-    redirectTo: '/settings', 
-    pathMatch: 'full' 
-  },
-  {
-    path: 'settings',
-    component: SettingsComponent,
-    title: 'Settings'
-  },
-  {
-    path: '**',
-    redirectTo: '/settings'
-  }
-];
+import { routes } from './app/app.routes';
 
 bootstrapApplication(AppComponent, {
   providers: [
-  importProvidersFrom(FormsModule, ReactiveFormsModule, CommonModule)
-  ]
+  provideRouter(routes),
+    importProvidersFrom(FormsModule, ReactiveFormsModule, CommonModule)  ]
 });
