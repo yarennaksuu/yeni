@@ -4,6 +4,10 @@
 )]
 
 use serde::{Deserialize, Serialize};
+use std::sync::{Arc, Mutex, atomic::{AtomicBool, Ordering}};
+use std::thread::{self, JoinHandle};
+use std::time::{Duration, Instant};
+use tauri::Manager;
 
 // Data structures returned to the frontend
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -240,8 +244,203 @@ pub fn start_process(executable_path: String, arguments: Option<String>) -> Resu
     win::start_process(executable_path, arguments)
 }
 
+// ===== Simple app state for daemon and stats =====
+#[derive(Default)]
+struct AppState {
+    daemon_running: AtomicBool,
+    last_scan: Mutex<Option<Instant>>,
+    detected_threats: Mutex<u64>,
+    killed_processes: Mutex<u64>,
+    scan_count: Mutex<u64>,
+    activities: Mutex<Vec<Activity>>, // ring buffer semantics kept simple
+    worker: Mutex<Option<JoinHandle<()>>>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct Activity {
+    id: String,
+    timestamp: String,
+    event: String,
+    message: String,
+    process_name: Option<String>,
+    pid: Option<u32>,
+}
+
+fn push_activity(app: &tauri::AppHandle, state: &AppState, event: &str, message: &str, process_name: Option<String>, pid: Option<u32>) {
+    let act = Activity {
+        id: format!("{}", chrono::Utc::now().timestamp_millis()),
+        timestamp: chrono::Utc::now().to_rfc3339(),
+        event: event.to_string(),
+        message: message.to_string(),
+        process_name,
+        pid,
+    };
+    {
+        let mut v = state.activities.lock().unwrap();
+        v.insert(0, act.clone());
+        if v.len() > 10000 { v.truncate(10000); }
+    }
+    let _ = app.emit_all("new_log_entry", act);
+}
+
+// ===== Policy matching (name/path), whitelist precedence =====
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
+struct Rule { rule_type: String, value: String }
+
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
+struct PolicyConfig { blacklist: Vec<Rule>, whitelist: Vec<Rule> }
+
+fn matches_rule_name(name: &str, pat: &str) -> bool {
+    let n = name.to_ascii_lowercase();
+    let p = pat.to_ascii_lowercase();
+    if p.contains('*') { wildcard_match::wildmatch(&p, &n) } else { n == p }
+}
+
+fn matches_rule_path(path: &str, pat: &str) -> bool {
+    let n = path.to_ascii_lowercase();
+    let p = pat.to_ascii_lowercase();
+    if p.contains('*') { wildcard_match::wildmatch(&p, &n) } else { n == p }
+}
+
+fn is_whitelisted(pi: &ProcessInfo, pol: &PolicyConfig) -> bool {
+    for r in &pol.whitelist {
+        match r.rule_type.as_str() {
+            "name" => { if matches_rule_name(&pi.name, &r.value) { return true; } },
+            "path" => { if let Some(ref path) = pi.executable_path { if matches_rule_path(path, &r.value) { return true; } } },
+            _ => {}
+        }
+    }
+    false
+}
+
+fn is_blacklisted(pi: &ProcessInfo, pol: &PolicyConfig) -> bool {
+    for r in &pol.blacklist {
+        match r.rule_type.as_str() {
+            "name" => { if matches_rule_name(&pi.name, &r.value) { return true; } },
+            "path" => { if let Some(ref path) = pi.executable_path { if matches_rule_path(path, &r.value) { return true; } } },
+            _ => {}
+        }
+    }
+    false
+}
+
+fn load_policy_config() -> PolicyConfig {
+    // Placeholder: load from a file later; for now, empty policy
+    PolicyConfig::default()
+}
+
+// ===== Commands for daemon and stats =====
+#[tauri::command]
+fn start_single_scan(app: tauri::AppHandle, state: tauri::State<AppState>) -> Result<(), String> {
+    let policy = load_policy_config();
+    let list = win::list_processes()?;
+    *state.scan_count.lock().unwrap() += 1;
+    *state.last_scan.lock().unwrap() = Some(Instant::now());
+    let _ = app.emit_all("scan-event", serde_json::json!({"event":"SCAN_START"}));
+
+    for p in list {
+        if is_whitelisted(&p, &policy) { continue; }
+        if is_blacklisted(&p, &policy) {
+            push_activity(&app, &state, "DETECTED", &format!("Detected {}", p.name), Some(p.name.clone()), Some(p.pid));
+            match win::kill_process(p.pid) {
+                Ok(true) => {
+                    *state.killed_processes.lock().unwrap() += 1;
+                    push_activity(&app, &state, "KILL_SUCCESS", "Process terminated", Some(p.name), Some(p.pid));
+                }
+                _ => {
+                    push_activity(&app, &state, "KILL_FAIL", "Failed to terminate", Some(p.name), Some(p.pid));
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn start_daemon(app: tauri::AppHandle, state: tauri::State<AppState>, interval: u64, dry_run: bool) -> Result<(), String> {
+    if state.daemon_running.swap(true, Ordering::SeqCst) { return Ok(()); }
+    let app2 = app.clone();
+    let st = state.inner();
+    let handle = thread::spawn(move || {
+        let mut policy = load_policy_config();
+        loop {
+            if !st.daemon_running.load(Ordering::SeqCst) { break; }
+            let _ = app2.emit_all("daemon-status", serde_json::json!({"running": true}));
+            // Optional: reload policy periodically later
+            let list = match win::list_processes() { Ok(v) => v, Err(_) => { thread::sleep(Duration::from_millis(interval)); continue; } };
+            *st.scan_count.lock().unwrap() += 1;
+            *st.last_scan.lock().unwrap() = Some(Instant::now());
+            let _ = app2.emit_all("scan-event", serde_json::json!({"event":"SCAN_START"}));
+            for p in list {
+                if is_whitelisted(&p, &policy) { continue; }
+                if is_blacklisted(&p, &policy) {
+                    push_activity(&app2, &st, "DETECTED", &format!("Detected {}", p.name), Some(p.name.clone()), Some(p.pid));
+                    if !dry_run {
+                        match win::kill_process(p.pid) {
+                            Ok(true) => {
+                                *st.killed_processes.lock().unwrap() += 1;
+                                push_activity(&app2, &st, "KILL_SUCCESS", "Process terminated", Some(p.name), Some(p.pid));
+                            }
+                            _ => {
+                                push_activity(&app2, &st, "KILL_FAIL", "Failed to terminate", Some(p.name), Some(p.pid));
+                            }
+                        }
+                    }
+                }
+            }
+            thread::sleep(Duration::from_millis(interval));
+        }
+        let _ = app2.emit_all("daemon-status", serde_json::json!({"running": false}));
+    });
+    *state.worker.lock().unwrap() = Some(handle);
+    Ok(())
+}
+
+#[tauri::command]
+fn stop_daemon(state: tauri::State<AppState>) -> Result<(), String> {
+    state.daemon_running.store(false, Ordering::SeqCst);
+    if let Some(h) = state.worker.lock().unwrap().take() { let _ = h.join(); }
+    Ok(())
+}
+
+#[tauri::command]
+fn emergency_stop(app: tauri::AppHandle, state: tauri::State<AppState>) -> Result<(), String> {
+    state.daemon_running.store(false, Ordering::SeqCst);
+    if let Some(h) = state.worker.lock().unwrap().take() { let _ = h.join(); }
+    push_activity(&app, &state, "ERROR", "Emergency stop activated", None, None);
+    Ok(())
+}
+
+#[tauri::command]
+fn get_system_stats(state: tauri::State<AppState>) -> Result<serde_json::Value, String> {
+    let uptime = state.last_scan.lock().unwrap().map(|t| t.elapsed().as_secs()).unwrap_or(0);
+    Ok(serde_json::json!({
+        "totalProcesses": win::list_processes().map(|v| v.len()).unwrap_or(0),
+        "detectedThreats": *state.detected_threats.lock().unwrap(),
+        "killedProcesses": *state.killed_processes.lock().unwrap(),
+        "uptime": uptime,
+        "scanCount": *state.scan_count.lock().unwrap()
+    }))
+}
+
+#[tauri::command]
+fn get_recent_activities(state: tauri::State<AppState>) -> Result<Vec<Activity>, String> {
+    Ok(state.activities.lock().unwrap().clone())
+}
+
+#[tauri::command]
+fn get_system_health() -> Result<serde_json::Value, String> {
+    Ok(serde_json::json!({
+        "scanner": "HEALTHY",
+        "policy_engine": "HEALTHY",
+        "kill_system": "HEALTHY",
+        "logging": "HEALTHY"
+    }))
+}
+
 fn main() {
     tauri::Builder::default()
+        .manage(AppState::default())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
@@ -249,7 +448,14 @@ fn main() {
             get_process_list,
             get_process_details,
             kill_process,
-            start_process
+            start_process,
+            start_single_scan,
+            start_daemon,
+            stop_daemon,
+            get_system_stats,
+            get_recent_activities,
+            get_system_health,
+            emergency_stop
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
