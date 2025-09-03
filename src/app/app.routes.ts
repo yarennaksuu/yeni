@@ -7,6 +7,11 @@ export const routes: Routes = [
     pathMatch: 'full'
   },
   {
+    path: 'policy',
+    redirectTo: '/policies',
+    pathMatch: 'full'
+  },
+  {
     path: 'dashboard',
     loadComponent: () => import('./components/dashboard/dashboard.component').then(m => m.DashboardComponent)
   },

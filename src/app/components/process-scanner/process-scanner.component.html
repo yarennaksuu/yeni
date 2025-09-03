@@ -6,30 +6,21 @@
       <mat-card-subtitle>Real-time process monitoring</mat-card-subtitle>
     </mat-card-header>
     <mat-card-actions>
-      <button mat-raised-button color="primary" [disabled]="isScanning" (click)="loadProcesses()">
-        <mat-icon>{{isScanning ? 'hourglass_empty' : 'search'}}</mat-icon>
-        {{isScanning ? 'Scanning...' : 'Scan'}}
-      </button>
+      <div class="actions-grid">
+        <button mat-raised-button color="primary" [disabled]="isScanning" (click)="loadProcesses()">
+          <mat-icon>{{isScanning ? 'hourglass_empty' : 'search'}}</mat-icon>
+          {{isScanning ? 'Scanning...' : 'Scan'}}
+        </button>
 
-      <mat-slide-toggle [(ngModel)]="isDryRun" class="dry-run-toggle">
-        Dry Run Mode
-      </mat-slide-toggle>
+        <mat-slide-toggle [(ngModel)]="isDryRun" class="dry-run-toggle">Dry Run</mat-slide-toggle>
+
+        <button mat-stroked-button (click)="toggleAutoRefresh()">
+          <mat-icon>{{ isAutoRefresh ? 'pause' : 'autorenew' }}</mat-icon>
+          {{ isAutoRefresh ? 'Stop Auto-refresh' : 'Start Auto-refresh' }}
+        </button>
+      </div>
     </mat-card-actions>
-
-
   </mat-card>
-  <div class="scanner-section">
-    <mat-card class="table-card">
-      <mat-card-header>
-        <mat-card-title>Processes ({{filteredProcesses.length}})</mat-card-title>
-      </mat-card-header>
-      <mat-card-content class="scanner-section">
-        <table mat-table [dataSource]="filteredProcesses" class="process-table">
-        </table>
-      </mat-card-content>
-    </mat-card>
-  </div>
-
 
   <!-- Filters -->
   <mat-card class="filter-card">
@@ -47,8 +38,11 @@
             <mat-option value="whitelisted">Whitelisted</mat-option>
             <mat-option value="blacklisted">Blacklisted</mat-option>
             <mat-option value="unmatched">Unmatched</mat-option>
+            <mat-option value="terminated">Terminated</mat-option>
           </mat-select>
         </mat-form-field>
+
+        <button mat-stroked-button type="button" (click)="clearFilters()">Clear</button>
       </form>
     </mat-card-content>
   </mat-card>

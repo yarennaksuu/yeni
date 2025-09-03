@@ -1,18 +1,7 @@
 /* Process Scanner Component Styles */
-.scanner-container {
-  padding: 20px;
-  max-width: 1200px;
-  margin: 0;
-}
-
-.header-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding: 16px;
-  background: #f5f5f5;
-  border-radius: 8px;
+.process-scanner {
+  display: grid;
+  gap: 16px;
 }
 
 .status-indicator {
@@ -70,33 +59,9 @@
   background: #f57c00;
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.stat-card {
-  padding: 16px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  text-align: center;
-}
-
-.stat-number {
-  font-size: 2em;
-  font-weight: bold;
-  color: #2196f3;
-  margin-bottom: 8px;
-}
-
-.stat-label {
-  color: #666;
-  font-size: 0.9em;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+/* Tables */
+table.process-table {
+  width: 100%;
 }
 
 /* Security info icon fix */
@@ -105,13 +70,10 @@
   vertical-align: middle;
 } /* Eksik olan kapanış parantezi eklendi */
 
-.security-info {
-  display: flex;
-  align-items: center;
-  padding: 16px;
-  margin: 16px 0;
-  border-radius: 8px;
-  background: #f5f5f5;
+/* Utility */
+.scanner-section {
+  max-height: 474px;
+  overflow-y: auto;
 }
 
 .security-info.elevated {
@@ -167,18 +129,34 @@
   line-height: 1.6;
 }
 
-.version-info {
-  background: #f5f5f5;
-  padding: 16px;
-  border-radius: 8px;
-  margin-top: 16px;
+/* Row emphasis */
+.blacklisted-row {
+  background: rgba(244, 67, 54, 0.06);
 }
 
-.version-info p {
-  margin: 8px 0;
-  font-family: monospace;
+.whitelisted-row {
+  background: rgba(33, 150, 243, 0.06);
 }
-.scanner-section {
-    max-height: 474px;
-    overflow-y: scroll;
+
+/* Header actions layout: wrap buttons nicely and stack on small screens */
+.header-card .mat-mdc-card-actions {
+  display: block;
+}
+
+.header-card .actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  align-items: center;
+}
+
+.header-card .mat-mdc-card-actions .mdc-form-field {
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .header-card .actions-grid {
+    grid-template-columns: 1fr;
+  }
 }
