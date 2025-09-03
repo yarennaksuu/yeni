@@ -235,7 +235,7 @@ pub fn get_process_details(pid: u32) -> Result<ProcessDetails, String> {
 }
 
 #[tauri::command]
-pub fn kill_process(pid: u32) -> Result<bool, String> {
+pub fn kill_process(pid: u32, _name: Option<String>) -> Result<bool, String> {
     win::kill_process(pid)
 }
 
