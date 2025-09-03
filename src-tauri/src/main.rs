@@ -4,9 +4,7 @@
     windows_subsystem = "windows"
 )]
 
-mod process_manager;
-
-use process_manager::{get_all_processes, kill_process, get_process_details, start_process};
+// Commands are defined in this file below; no external module import needed.
 
 fn main() {
     tauri::Builder::default()
