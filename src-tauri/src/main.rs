@@ -4,6 +4,8 @@
 )]
 
 use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex, atomic::{AtomicBool, Ordering}};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
@@ -254,6 +256,7 @@ struct AppState {
     scan_count: Mutex<u64>,
     activities: Mutex<Vec<Activity>>, // ring buffer semantics kept simple
     worker: Mutex<Option<JoinHandle<()>>>,
+    policy: Mutex<PolicyConfig>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -324,15 +327,41 @@ fn is_blacklisted(pi: &ProcessInfo, pol: &PolicyConfig) -> bool {
     false
 }
 
-fn load_policy_config() -> PolicyConfig {
-    // Placeholder: load from a file later; for now, empty policy
-    PolicyConfig::default()
+fn policy_path(app: &tauri::AppHandle) -> PathBuf {
+    // Try app config dir, fallback to current dir
+    if let Ok(dir) = app.path().app_config_dir() {
+        let mut p = dir;
+        let _ = fs::create_dir_all(&p);
+        p.push("policy.json");
+        return p;
+    }
+    PathBuf::from("policy.json")
+}
+
+fn read_policy_from_disk(app: &tauri::AppHandle) -> Option<PolicyConfig> {
+    let p = policy_path(app);
+    if let Ok(bytes) = fs::read(&p) {
+        if let Ok(cfg) = serde_json::from_slice::<PolicyConfig>(&bytes) {
+            return Some(cfg);
+        }
+    }
+    None
+}
+
+fn write_policy_to_disk(app: &tauri::AppHandle, cfg: &PolicyConfig) -> Result<(), String> {
+    let p = policy_path(app);
+    let data = serde_json::to_vec_pretty(cfg).map_err(|e| e.to_string())?;
+    fs::write(p, data).map_err(|e| e.to_string())
 }
 
 // ===== Commands for daemon and stats =====
 #[tauri::command]
 fn start_single_scan(app: tauri::AppHandle, state: tauri::State<AppState>) -> Result<(), String> {
-    let policy = load_policy_config();
+    // refresh policy from disk if available
+    if let Some(cfg) = read_policy_from_disk(&app) {
+        *state.policy.lock().unwrap() = cfg;
+    }
+    let policy = state.policy.lock().unwrap().clone();
     let list = win::list_processes()?;
     *state.scan_count.lock().unwrap() += 1;
     *state.last_scan.lock().unwrap() = Some(Instant::now());
@@ -341,6 +370,7 @@ fn start_single_scan(app: tauri::AppHandle, state: tauri::State<AppState>) -> Re
     for p in list {
         if is_whitelisted(&p, &policy) { continue; }
         if is_blacklisted(&p, &policy) {
+            *state.detected_threats.lock().unwrap() += 1;
             push_activity(&app, &state, "DETECTED", &format!("Detected {}", p.name), Some(p.name.clone()), Some(p.pid));
             match win::kill_process(p.pid) {
                 Ok(true) => {
@@ -362,11 +392,14 @@ fn start_daemon(app: tauri::AppHandle, state: tauri::State<AppState>, interval: 
     let app2 = app.clone();
     let st = state.inner();
     let handle = thread::spawn(move || {
-        let mut policy = load_policy_config();
         loop {
             if !st.daemon_running.load(Ordering::SeqCst) { break; }
             let _ = app2.emit_all("daemon-status", serde_json::json!({"running": true}));
-            // Optional: reload policy periodically later
+            // Attempt to refresh policy from disk periodically
+            if let Some(cfg) = read_policy_from_disk(&app2) {
+                *st.policy.lock().unwrap() = cfg;
+            }
+            let policy = st.policy.lock().unwrap().clone();
             let list = match win::list_processes() { Ok(v) => v, Err(_) => { thread::sleep(Duration::from_millis(interval)); continue; } };
             *st.scan_count.lock().unwrap() += 1;
             *st.last_scan.lock().unwrap() = Some(Instant::now());
@@ -374,6 +407,7 @@ fn start_daemon(app: tauri::AppHandle, state: tauri::State<AppState>, interval: 
             for p in list {
                 if is_whitelisted(&p, &policy) { continue; }
                 if is_blacklisted(&p, &policy) {
+                    *st.detected_threats.lock().unwrap() += 1;
                     push_activity(&app2, &st, "DETECTED", &format!("Detected {}", p.name), Some(p.name.clone()), Some(p.pid));
                     if !dry_run {
                         match win::kill_process(p.pid) {
@@ -436,6 +470,24 @@ fn get_system_health() -> Result<serde_json::Value, String> {
         "kill_system": "HEALTHY",
         "logging": "HEALTHY"
     }))
+}
+
+// ===== Policy config commands =====
+#[tauri::command]
+fn get_policy_config(app: tauri::AppHandle, state: tauri::State<AppState>) -> Result<PolicyConfig, String> {
+    if let Some(cfg) = read_policy_from_disk(&app) {
+        *state.policy.lock().unwrap() = cfg.clone();
+        return Ok(cfg);
+    }
+    Ok(state.policy.lock().unwrap().clone())
+}
+
+#[tauri::command]
+fn save_policy_config(app: tauri::AppHandle, state: tauri::State<AppState>, cfg: PolicyConfig) -> Result<(), String> {
+    write_policy_to_disk(&app, &cfg)?;
+    *state.policy.lock().unwrap() = cfg;
+    let _ = app.emit_all("config-event", serde_json::json!({"event":"CONFIG_RELOAD"}));
+    Ok(())
 }
 
 fn main() {
