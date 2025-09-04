@@ -14,6 +14,8 @@ use tracing::{info, warn, error};
 use tracing_appender::non_blocking::WorkerGuard;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
+use hmac::{Hmac, Mac};
+use rand::RngCore;
 
 // Data structures returned to the frontend
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -286,6 +288,8 @@ struct AppState {
     _log_guard: Option<WorkerGuard>,
     // Block restart map: exe path -> blocked until timestamp (Instant)
     block_restart_until: Mutex<HashMap<String, Instant>>,
+    // HMAC key for log integrity
+    hmac_key: Mutex<Option<Vec<u8>>>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -320,6 +324,15 @@ fn push_activity(app: &tauri::AppHandle, state: &AppState, event: &str, message:
         "KILL_FAIL" => warn!(event="KILL_FAIL", %message, ?process_name, ?pid),
         "ERROR" => error!(event="ERROR", %message),
         _ => info!(event=%event, %message),
+    }
+    // Append HMAC line (best-effort)
+    if let Some(key) = state.hmac_key.lock().unwrap().clone() {
+        type HmacSha256 = Hmac<Sha256>;
+        let mut mac = HmacSha256::new_from_slice(&key).unwrap();
+        let line = format!("{}|{}|{}|{}|{}\n", act.timestamp, act.event, act.message, act.process_name.clone().unwrap_or_default(), act.pid.unwrap_or(0));
+        mac.update(line.as_bytes());
+        let tag = mac.finalize().into_bytes();
+        let _ = std::fs::OpenOptions::new().create(true).append(true).open("logs/edr_kill_switch.hmac").and_then(|mut f| std::io::Write::write_all(&mut f, format!("{} {}", hex::encode(tag), line).as_bytes()));
     }
 }
 
@@ -585,22 +598,24 @@ fn save_policy_config(app: tauri::AppHandle, state: tauri::State<AppState>, cfg:
 
 fn main() {
     // Init logging to file (json lines) in app data dir
-    let (guard, is_admin) = {
+    let (guard, is_admin, key) = {
         let file_appender = tracing_appender::rolling::daily("logs", "edr_kill_switch.jsonl");
         let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
         let fmt_layer = tracing_subscriber::fmt::layer().json().with_writer(non_blocking);
         tracing_subscriber::registry().with(fmt_layer).init();
         // naive admin detection
         let admin = cfg!(target_os = "windows") && is_running_as_admin();
-        (guard, admin)
+        let mut key = vec![0u8; 32]; rand::thread_rng().fill_bytes(&mut key);
+        (guard, admin, key)
     };
 
     let mut state = AppState::default();
     state._log_guard = Some(guard);
     state.is_admin.store(is_admin, Ordering::SeqCst);
+    *state.hmac_key.lock().unwrap() = Some(key);
 
     tauri::Builder::default()
-        .manage(AppState::default())
+        .manage(state)
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
