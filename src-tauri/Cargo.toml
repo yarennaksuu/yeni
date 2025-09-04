@@ -20,6 +20,10 @@ tauri-plugin-dialog = "2.0"
 tauri-plugin-shell = "2.0"
 chrono = { version = "0.4", features = ["clock", "serde"] }
 wildcard-match = "0.2"
+sha2 = "0.10"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt", "json"] }
+tracing-appender = "0.2"
 
 # Windows API
 windows = { version = "0.58", features = [
@@ -30,6 +34,7 @@ windows = { version = "0.58", features = [
     "Win32_System_SystemServices",
     "Win32_Security",
     "Win32_System_Memory",
+    "Win32_UI_WindowsAndMessaging"
 ] }
 
 [features]

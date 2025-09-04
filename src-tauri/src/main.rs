@@ -10,6 +10,7 @@ use std::sync::{Arc, Mutex, atomic::{AtomicBool, Ordering}};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 use tauri::Manager;
+use tracing::{info, warn, error};
 
 // Data structures returned to the frontend
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -40,7 +41,7 @@ mod win {
     use std::os::windows::ffi::OsStrExt;
     use windows::{
         core::{PCWSTR, PWSTR},
-        Win32::Foundation::{CloseHandle, HANDLE, HMODULE},
+        Win32::Foundation::{CloseHandle, BOOL, HWND, LPARAM, LRESULT, WPARAM, HANDLE, HMODULE},
         Win32::System::Diagnostics::ToolHelp::{
             CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, Thread32First, Thread32Next,
             PROCESSENTRY32W, THREADENTRY32, TH32CS_SNAPPROCESS, TH32CS_SNAPTHREAD,
@@ -50,6 +51,7 @@ mod win {
             CreateProcessW, GetProcessHandleCount, OpenProcess, TerminateProcess, PROCESS_CREATION_FLAGS,
             PROCESS_QUERY_INFORMATION, PROCESS_TERMINATE, PROCESS_VM_READ, PROCESS_INFORMATION, STARTUPINFOW,
         },
+        Win32::UI::WindowsAndMessaging::{EnumWindows, GetWindowThreadProcessId, PostMessageW, WM_CLOSE},
     };
 
     pub fn list_processes() -> Result<Vec<ProcessInfo>, String> {
@@ -97,6 +99,11 @@ mod win {
             if handle.is_invalid() {
                 return Err(format!("OpenProcess failed for PID {pid}"));
             }
+            // Try graceful: send WM_CLOSE to any top-level window owned by PID
+            let _ = send_wm_close_to_pid(pid);
+            // small grace period
+            std::thread::sleep(std::time::Duration::from_millis(200));
+            // Force terminate
             let result = TerminateProcess(handle, 1);
             let _ = CloseHandle(handle);
             if result.is_ok() { Ok(true) } else { Err("TerminateProcess failed".to_string()) }
@@ -208,6 +215,21 @@ mod win {
             let _ = CloseHandle(handle);
             if ok.is_ok() { Ok(count) } else { Ok(0) }
         }
+    }
+
+    unsafe extern "system" fn enum_cb(hwnd: HWND, lparam: LPARAM) -> BOOL {
+        let target_pid = lparam.0 as u32;
+        let mut wnd_pid: u32 = 0;
+        let _ = GetWindowThreadProcessId(hwnd, Some(&mut wnd_pid));
+        if wnd_pid == target_pid {
+            let _ = PostMessageW(hwnd, WM_CLOSE, WPARAM(0), LPARAM(0));
+        }
+        BOOL(1)
+    }
+
+    fn send_wm_close_to_pid(pid: u32) -> bool {
+        unsafe { let _ = EnumWindows(Some(enum_cb), LPARAM(pid as isize)); }
+        true
     }
 }
 
@@ -368,6 +390,8 @@ fn start_single_scan(app: tauri::AppHandle, state: tauri::State<AppState>) -> Re
     let _ = app.emit_all("scan-event", serde_json::json!({"event":"SCAN_START"}));
 
     for p in list {
+        // self-protection: never kill our own process
+        if std::process::id() == p.pid { continue; }
         if is_whitelisted(&p, &policy) { continue; }
         if is_blacklisted(&p, &policy) {
             *state.detected_threats.lock().unwrap() += 1;
@@ -405,6 +429,7 @@ fn start_daemon(app: tauri::AppHandle, state: tauri::State<AppState>, interval: 
             *st.last_scan.lock().unwrap() = Some(Instant::now());
             let _ = app2.emit_all("scan-event", serde_json::json!({"event":"SCAN_START"}));
             for p in list {
+                if std::process::id() == p.pid { continue; }
                 if is_whitelisted(&p, &policy) { continue; }
                 if is_blacklisted(&p, &policy) {
                     *st.detected_threats.lock().unwrap() += 1;
