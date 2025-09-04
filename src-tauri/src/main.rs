@@ -13,6 +13,7 @@ use tauri::Manager;
 use tracing::{info, warn, error};
 use tracing_appender::non_blocking::WorkerGuard;
 use sha2::{Digest, Sha256};
+use std::collections::HashMap;
 
 // Data structures returned to the frontend
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -283,6 +284,8 @@ struct AppState {
     policy: Mutex<PolicyConfig>,
     is_admin: AtomicBool,
     _log_guard: Option<WorkerGuard>,
+    // Block restart map: exe path -> blocked until timestamp (Instant)
+    block_restart_until: Mutex<HashMap<String, Instant>>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -497,6 +500,10 @@ fn start_daemon(app: tauri::AppHandle, state: tauri::State<AppState>, interval: 
                             Ok(true) => {
                                 *st.killed_processes.lock().unwrap() += 1;
                                 push_activity(&app2, &st, "KILL_SUCCESS", "Process terminated", Some(p.name), Some(p.pid));
+                                if let Some(ref path) = p.executable_path {
+                                    // block restart for 5 seconds
+                                    st.block_restart_until.lock().unwrap().insert(path.clone(), Instant::now() + Duration::from_secs(5));
+                                }
                             }
                             _ => {
                                 push_activity(&app2, &st, "KILL_FAIL", "Failed to terminate", Some(p.name), Some(p.pid));
@@ -554,6 +561,9 @@ fn get_system_health() -> Result<serde_json::Value, String> {
         "logging": "HEALTHY"
     }))
 }
+
+// ===== Optional: simple hot-reload watcher (best-effort) =====
+// Note: requires a running loop; we integrate with daemon refresh above.
 
 // ===== Policy config commands =====
 #[tauri::command]
