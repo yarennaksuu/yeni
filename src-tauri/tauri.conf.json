@@ -5,8 +5,8 @@
   "build": {
     "beforeBuildCommand": "npm run build",
     "beforeDevCommand": "npm run start",
-    "frontendDist": "../dist",
-    "devUrl": "http://localhost:4200"
+    "frontendDist": "../dist/edr-kill-switch",
+    "devUrl": "http://localhost:1420"
   },
   "app": {
     "windows": [
