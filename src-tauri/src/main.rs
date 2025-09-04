@@ -322,10 +322,24 @@ fn push_activity(app: &tauri::AppHandle, state: &AppState, event: &str, message:
 
 // ===== Policy matching (name/path), whitelist precedence =====
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
-struct Rule { rule_type: String, value: String }
+struct Rule {
+    #[serde(skip_serializing_if = "Option::is_none")] id: Option<String>,
+    #[serde(rename = "rule_type")] rule_type: String,
+    value: String,
+    #[serde(skip_serializing_if = "Option::is_none")] description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")] enabled: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")] severity: Option<String>,
+    #[serde(rename = "auto_action", skip_serializing_if = "Option::is_none")] auto_action: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")] tags: Option<Vec<String>>,
+    #[serde(rename = "created_at", skip_serializing_if = "Option::is_none")] created_at: Option<String>,
+    #[serde(rename = "last_modified", skip_serializing_if = "Option::is_none")] last_modified: Option<String>,
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
-struct PolicyConfig { blacklist: Vec<Rule>, whitelist: Vec<Rule> }
+struct PolicyConfig {
+    blacklist: Vec<Rule>,
+    whitelist: Vec<Rule>,
+}
 
 fn matches_rule_name(name: &str, pat: &str) -> bool {
     let n = name.to_ascii_lowercase();
@@ -348,6 +362,7 @@ fn matches_rule_hash(path: &str, expected_hex: &str) -> bool {
 
 fn is_whitelisted(pi: &ProcessInfo, pol: &PolicyConfig) -> bool {
     for r in &pol.whitelist {
+        if matches!(r.enabled, Some(false)) { continue; }
         match r.rule_type.as_str() {
             "name" => { if matches_rule_name(&pi.name, &r.value) { return true; } },
             "path" => { if let Some(ref path) = pi.executable_path { if matches_rule_path(path, &r.value) { return true; } } },
@@ -360,6 +375,7 @@ fn is_whitelisted(pi: &ProcessInfo, pol: &PolicyConfig) -> bool {
 
 fn is_blacklisted(pi: &ProcessInfo, pol: &PolicyConfig) -> bool {
     for r in &pol.blacklist {
+        if matches!(r.enabled, Some(false)) { continue; }
         match r.rule_type.as_str() {
             "name" => { if matches_rule_name(&pi.name, &r.value) { return true; } },
             "path" => { if let Some(ref path) = pi.executable_path { if matches_rule_path(path, &r.value) { return true; } } },

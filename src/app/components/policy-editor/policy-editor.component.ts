@@ -141,8 +141,9 @@ export class PolicyEditorComponent implements OnInit {
 
   async loadConfiguration() {
     try {
-      const loadedConfig = await this.tauriService.getPolicyConfig() as PolicyConfig;
-      this.config = loadedConfig;
+      const loaded = await this.tauriService.getPolicyConfig() as any;
+      this.config.blacklist = (loaded.blacklist || []).map((r: any) => this.fromBackendRule(r));
+      this.config.whitelist = (loaded.whitelist || []).map((r: any) => this.fromBackendRule(r));
       this.updateMetadata();
       
       if (this.config.blacklist.length === 0 && this.config.whitelist.length === 0) {
@@ -454,15 +455,45 @@ export class PolicyEditorComponent implements OnInit {
   async saveConfiguration() {
     try {
       await this.tauriService.savePolicyConfig({
-        blacklist: this.config.blacklist.map(r => ({ rule_type: r.ruleType, value: r.value })),
-        whitelist: this.config.whitelist.map(r => ({ rule_type: r.ruleType, value: r.value }))
-      });
+        blacklist: this.config.blacklist.map(r => this.toBackendRule(r)),
+        whitelist: this.config.whitelist.map(r => this.toBackendRule(r))
+      } as any);
       this.hasChanges = false;
       this.notificationService.showSuccess('Configuration saved successfully');
     } catch (error) {
       console.error('Failed to save configuration:', error);
       this.notificationService.showError('Failed to save configuration');
     }
+  }
+
+  private fromBackendRule(r: any): Rule {
+    return {
+      id: r.id || this.generateRuleId(),
+      ruleType: r.rule_type as any,
+      value: r.value || '',
+      description: r.description || '',
+      enabled: r.enabled !== false,
+      createdAt: r.created_at || new Date().toISOString(),
+      lastModified: r.last_modified || new Date().toISOString(),
+      severity: (r.severity || 'medium') as any,
+      autoAction: (r.auto_action || 'alert') as any,
+      tags: r.tags || []
+    };
+  }
+
+  private toBackendRule(r: Rule) {
+    return {
+      id: r.id,
+      rule_type: r.ruleType,
+      value: r.value,
+      description: r.description,
+      enabled: r.enabled,
+      created_at: r.createdAt,
+      last_modified: r.lastModified,
+      severity: r.severity,
+      auto_action: r.autoAction,
+      tags: r.tags
+    };
   }
 
   translate(key: string): string {
