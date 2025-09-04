@@ -11,6 +11,8 @@ use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 use tauri::Manager;
 use tracing::{info, warn, error};
+use tracing_appender::non_blocking::WorkerGuard;
+use sha2::{Digest, Sha256};
 
 // Data structures returned to the frontend
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -279,6 +281,8 @@ struct AppState {
     activities: Mutex<Vec<Activity>>, // ring buffer semantics kept simple
     worker: Mutex<Option<JoinHandle<()>>>,
     policy: Mutex<PolicyConfig>,
+    is_admin: AtomicBool,
+    _log_guard: Option<WorkerGuard>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -305,7 +309,15 @@ fn push_activity(app: &tauri::AppHandle, state: &AppState, event: &str, message:
         v.insert(0, act.clone());
         if v.len() > 10000 { v.truncate(10000); }
     }
-    let _ = app.emit_all("new_log_entry", act);
+    let _ = app.emit_all("new_log_entry", &act);
+    match event {
+        "SCAN_START" => info!(event="SCAN_START", message),
+        "DETECTED" => warn!(event="DETECTED", %message, ?process_name, ?pid),
+        "KILL_SUCCESS" => info!(event="KILL_SUCCESS", %message, ?process_name, ?pid),
+        "KILL_FAIL" => warn!(event="KILL_FAIL", %message, ?process_name, ?pid),
+        "ERROR" => error!(event="ERROR", %message),
+        _ => info!(event=%event, %message),
+    }
 }
 
 // ===== Policy matching (name/path), whitelist precedence =====
@@ -327,11 +339,19 @@ fn matches_rule_path(path: &str, pat: &str) -> bool {
     if p.contains('*') { wildcard_match::wildmatch(&p, &n) } else { n == p }
 }
 
+fn matches_rule_hash(path: &str, expected_hex: &str) -> bool {
+    if let Some(h) = compute_sha256_hex(path) {
+        return h.eq_ignore_ascii_case(expected_hex);
+    }
+    false
+}
+
 fn is_whitelisted(pi: &ProcessInfo, pol: &PolicyConfig) -> bool {
     for r in &pol.whitelist {
         match r.rule_type.as_str() {
             "name" => { if matches_rule_name(&pi.name, &r.value) { return true; } },
             "path" => { if let Some(ref path) = pi.executable_path { if matches_rule_path(path, &r.value) { return true; } } },
+            "hash" => { if let Some(ref path) = pi.executable_path { if matches_rule_hash(path, &r.value) { return true; } } },
             _ => {}
         }
     }
@@ -343,6 +363,7 @@ fn is_blacklisted(pi: &ProcessInfo, pol: &PolicyConfig) -> bool {
         match r.rule_type.as_str() {
             "name" => { if matches_rule_name(&pi.name, &r.value) { return true; } },
             "path" => { if let Some(ref path) = pi.executable_path { if matches_rule_path(path, &r.value) { return true; } } },
+            "hash" => { if let Some(ref path) = pi.executable_path { if matches_rule_hash(path, &r.value) { return true; } } },
             _ => {}
         }
     }
@@ -376,6 +397,19 @@ fn write_policy_to_disk(app: &tauri::AppHandle, cfg: &PolicyConfig) -> Result<()
     fs::write(p, data).map_err(|e| e.to_string())
 }
 
+fn compute_sha256_hex(path: &str) -> Option<String> {
+    let mut file = std::fs::File::open(path).ok()?;
+    let mut hasher = Sha256::new();
+    let mut buf = [0u8; 8192];
+    loop {
+        let n = std::io::Read::read(&mut file, &mut buf).ok()?;
+        if n == 0 { break; }
+        hasher.update(&buf[..n]);
+    }
+    let out = hasher.finalize();
+    Some(format!("{:x}", out))
+}
+
 // ===== Commands for daemon and stats =====
 #[tauri::command]
 fn start_single_scan(app: tauri::AppHandle, state: tauri::State<AppState>) -> Result<(), String> {
@@ -396,6 +430,10 @@ fn start_single_scan(app: tauri::AppHandle, state: tauri::State<AppState>) -> Re
         if is_blacklisted(&p, &policy) {
             *state.detected_threats.lock().unwrap() += 1;
             push_activity(&app, &state, "DETECTED", &format!("Detected {}", p.name), Some(p.name.clone()), Some(p.pid));
+            if !state.is_admin.load(Ordering::SeqCst) {
+                push_activity(&app, &state, "KILL_FAIL", "Restricted mode (no admin)", Some(p.name), Some(p.pid));
+                continue;
+            }
             match win::kill_process(p.pid) {
                 Ok(true) => {
                     *state.killed_processes.lock().unwrap() += 1;
@@ -435,6 +473,10 @@ fn start_daemon(app: tauri::AppHandle, state: tauri::State<AppState>, interval: 
                     *st.detected_threats.lock().unwrap() += 1;
                     push_activity(&app2, &st, "DETECTED", &format!("Detected {}", p.name), Some(p.name.clone()), Some(p.pid));
                     if !dry_run {
+                        if !st.is_admin.load(Ordering::SeqCst) {
+                            push_activity(&app2, &st, "KILL_FAIL", "Restricted mode (no admin)", Some(p.name), Some(p.pid));
+                            continue;
+                        }
                         match win::kill_process(p.pid) {
                             Ok(true) => {
                                 *st.killed_processes.lock().unwrap() += 1;
@@ -516,6 +558,21 @@ fn save_policy_config(app: tauri::AppHandle, state: tauri::State<AppState>, cfg:
 }
 
 fn main() {
+    // Init logging to file (json lines) in app data dir
+    let (guard, is_admin) = {
+        let file_appender = tracing_appender::rolling::daily("logs", "edr_kill_switch.jsonl");
+        let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
+        let fmt_layer = tracing_subscriber::fmt::layer().json().with_writer(non_blocking);
+        tracing_subscriber::registry().with(fmt_layer).init();
+        // naive admin detection
+        let admin = cfg!(target_os = "windows") && is_running_as_admin();
+        (guard, admin)
+    };
+
+    let mut state = AppState::default();
+    state._log_guard = Some(guard);
+    state.is_admin.store(is_admin, Ordering::SeqCst);
+
     tauri::Builder::default()
         .manage(AppState::default())
         .plugin(tauri_plugin_dialog::init())
@@ -537,6 +594,24 @@ fn main() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
+#[cfg(target_os = "windows")]
+fn is_running_as_admin() -> bool {
+    use windows::Win32::Security::{GetTokenInformation, TokenElevation, TOKEN_ELEVATION, TOKEN_QUERY};
+    use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
+    unsafe {
+        let mut token = windows::Win32::Foundation::HANDLE::default();
+        if OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token).is_err() { return false; }
+        let mut elev = TOKEN_ELEVATION::default();
+        let mut len = 0u32;
+        if GetTokenInformation(token, TokenElevation, Some(&mut elev as *mut _ as *mut _), std::mem::size_of::<TOKEN_ELEVATION>() as u32, &mut len).is_ok() {
+            elev.TokenIsElevated != 0
+        } else { false }
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn is_running_as_admin() -> bool { false }
 #![cfg_attr(
     all(not(debug_assertions), target_os = "windows"),
     windows_subsystem = "windows"
