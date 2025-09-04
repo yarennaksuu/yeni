@@ -141,7 +141,7 @@ export class PolicyEditorComponent implements OnInit {
 
   async loadConfiguration() {
     try {
-      const loadedConfig = await this.getPolicyConfigFromTauri();
+      const loadedConfig = await this.tauriService.getPolicyConfig() as PolicyConfig;
       this.config = loadedConfig;
       this.updateMetadata();
       
@@ -362,9 +362,7 @@ export class PolicyEditorComponent implements OnInit {
     return 'rule_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
   }
 
-  private async getPolicyConfigFromTauri(): Promise<PolicyConfig> {
-    return this.config;
-  }
+  private async getPolicyConfigFromTauri(): Promise<PolicyConfig> { return this.config; }
 
   addRule(listType: 'blacklist' | 'whitelist') {
     this.editingRule = null;
@@ -455,7 +453,10 @@ export class PolicyEditorComponent implements OnInit {
 
   async saveConfiguration() {
     try {
-      // await this.tauriService.savePolicyConfig(this.config);
+      await this.tauriService.savePolicyConfig({
+        blacklist: this.config.blacklist.map(r => ({ rule_type: r.ruleType, value: r.value })),
+        whitelist: this.config.whitelist.map(r => ({ rule_type: r.ruleType, value: r.value }))
+      });
       this.hasChanges = false;
       this.notificationService.showSuccess('Configuration saved successfully');
     } catch (error) {
