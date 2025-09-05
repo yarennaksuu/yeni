@@ -17,7 +17,7 @@
       flex: 1 1 auto;
       min-height: 0;
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       gap: 12px;
       align-content: start;
       align-items: start;
@@ -27,9 +27,9 @@
     /* Two-column placement */
     .settings-section--general { grid-column: 1; }
     .settings-section--notifications { grid-column: 2; }
+    .settings-section--application { grid-column: 3; }
 
     /* Make the rest span full width below */
-    .settings-section--application,
     .settings-section--actions,
     .settings-section--test { grid-column: 1 / -1; }
 
@@ -96,7 +96,8 @@
     @media (max-width: 900px) {
       .settings-content { grid-template-columns: 1fr; }
       .settings-section--general,
-      .settings-section--notifications { grid-column: 1; }
+      .settings-section--notifications,
+      .settings-section--application { grid-column: 1; }
     }
 
     /* Light Theme Support */
