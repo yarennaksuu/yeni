@@ -1,14 +1,15 @@
 .settings-container {}
     :host {
-      --settings-bg-start: #0b1220;
-      --settings-bg-end: #0f172a;
-      --settings-accent: #6366f1; /* indigo */
+      --settings-bg-start: #0a0f1a;
+      --settings-bg-end: #0d1422;
+      --settings-accent: #22d3ee; /* cyan */
+      --settings-accent-strong: #06b6d4; /* cyan darker */
       --settings-positive: #22c55e; /* green */
       --settings-warning: #f59e0b; /* amber */
       --settings-danger: #ef4444; /* red */
       --settings-info: #0ea5e9; /* sky */
       --settings-card-bg: rgba(255, 255, 255, 0.04);
-      --settings-card-border: rgba(99, 102, 241, 0.25);
+      --settings-card-border: rgba(34, 211, 238, 0.25);
     }
 
     .settings-container {
@@ -80,8 +81,8 @@
     /* Language list: compact + internal scroll */
     .language-selector-full { display: flex; flex-direction: column; gap: 6px; min-width: 0; max-height: 160px; overflow: auto; }
     .language-option { display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px; cursor: pointer; transition: all 0.2s ease; background: rgba(255, 255, 255, 0.02); }
-    .language-option:hover { background: rgba(99, 102, 241, 0.10); border-color: rgba(99, 102, 241, 0.35); }
-    .language-option.active { border-color: var(--settings-accent); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.20) inset; }
+    .language-option:hover { background: rgba(34, 211, 238, 0.10); border-color: rgba(34, 211, 238, 0.35); }
+    .language-option.active { border-color: var(--settings-accent); box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.20) inset; }
     .flag { font-size: 14px; }
 
     .language-info { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -91,8 +92,8 @@
     /* Theme buttons: stacked vertically and compact */
     .theme-selector { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
     .theme-option { display: flex; flex-direction: row; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; background: rgba(255, 255, 255, 0.02); min-width: 0; }
-    .theme-option:hover { background: rgba(99, 102, 241, 0.10); border-color: rgba(99, 102, 241, 0.35); }
-    .theme-option.active { border-color: var(--settings-accent); box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.20) inset; }
+    .theme-option:hover { background: rgba(34, 211, 238, 0.10); border-color: rgba(34, 211, 238, 0.35); }
+    .theme-option.active { border-color: var(--settings-accent); box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.20) inset; }
     .theme-option i { font-size: 14px; }
     .theme-option span { font-size: 13px; }
 
@@ -115,7 +116,7 @@
     .btn { border-radius: 8px; padding: 8px 12px; border: 1px solid rgba(255, 255, 255, 0.18); background: rgba(255, 255, 255, 0.06); color: #e5e7eb; transition: background 0.2s ease, border-color 0.2s ease, transform 0.05s ease; }
     .btn:hover { background: rgba(255, 255, 255, 0.10); }
     .btn:active { transform: translateY(1px); }
-    .btn-primary { background: linear-gradient(180deg, rgba(99, 102, 241, 0.85), rgba(79, 70, 229, 0.85)); border-color: rgba(99, 102, 241, 0.65); }
+    .btn-primary { background: linear-gradient(180deg, rgba(34, 211, 238, 0.90), rgba(6, 182, 212, 0.90)); border-color: rgba(6, 182, 212, 0.65); }
     .btn-success { background: linear-gradient(180deg, rgba(34, 197, 94, 0.85), rgba(16, 185, 129, 0.85)); border-color: rgba(16, 185, 129, 0.65); }
     .btn-secondary { background: linear-gradient(180deg, rgba(148, 163, 184, 0.6), rgba(100, 116, 139, 0.6)); border-color: rgba(148, 163, 184, 0.55); }
     .btn-info { background: linear-gradient(180deg, rgba(14, 165, 233, 0.85), rgba(2, 132, 199, 0.85)); border-color: rgba(14, 165, 233, 0.65); }
@@ -145,7 +146,7 @@
       }
 
       .section-header h3 {
-        color: #1976d2;
+        color: #0284c7; /* blue-cyan accent for light */
       }
 
       .section-header p {
@@ -169,8 +170,8 @@
 
       .language-option:hover,
       .theme-option:hover {
-        background: rgba(25, 118, 210, 0.08);
-        border-color: rgba(25, 118, 210, 0.35);
+        background: rgba(2, 132, 199, 0.08);
+        border-color: rgba(2, 132, 199, 0.35);
       }
 
       .language-name {
@@ -192,7 +193,7 @@
 
       .btn { color: #1f2937; background: rgba(0, 0, 0, 0.04); border-color: rgba(0, 0, 0, 0.12); }
       .btn:hover { background: rgba(0, 0, 0, 0.08); }
-      .btn-primary { background: linear-gradient(180deg, rgba(25, 118, 210, 0.95), rgba(25, 118, 210, 0.85)); border-color: rgba(25, 118, 210, 0.65); color: #fff; }
+      .btn-primary { background: linear-gradient(180deg, rgba(14, 165, 233, 0.95), rgba(2, 132, 199, 0.90)); border-color: rgba(2, 132, 199, 0.65); color: #fff; }
       .btn-success { background: linear-gradient(180deg, rgba(34, 197, 94, 0.95), rgba(16, 185, 129, 0.85)); border-color: rgba(16, 185, 129, 0.65); color: #fff; }
       .btn-secondary { background: linear-gradient(180deg, rgba(148, 163, 184, 0.6), rgba(100, 116, 139, 0.6)); border-color: rgba(148, 163, 184, 0.55); color: #111827; }
       .btn-info { background: linear-gradient(180deg, rgba(14, 165, 233, 0.95), rgba(2, 132, 199, 0.85)); border-color: rgba(14, 165, 233, 0.65); color: #fff; }
