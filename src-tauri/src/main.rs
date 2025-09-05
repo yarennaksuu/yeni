@@ -6,7 +6,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex, atomic::{AtomicBool, Ordering}};
+use std::sync::{Mutex, atomic::{AtomicBool, Ordering}};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 use tauri::Manager;
@@ -102,7 +102,7 @@ mod win {
 
     pub fn kill_process(pid: u32) -> Result<bool, String> {
         unsafe {
-            let handle = OpenProcess(PROCESS_TERMINATE, false, pid);
+            let handle = OpenProcess(PROCESS_TERMINATE, false, pid).map_err(|e| e.to_string())?;
             if handle.is_invalid() {
                 return Err(format!("OpenProcess failed for PID {pid}"));
             }
@@ -167,7 +167,7 @@ mod win {
 
     fn get_process_path(pid: u32) -> Option<String> {
         unsafe {
-            let handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid);
+            let handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid).ok()?;
             if handle.is_invalid() {
                 return None;
             }
@@ -180,7 +180,7 @@ mod win {
 
     fn get_process_memory_usage(pid: u32) -> Option<u64> {
         unsafe {
-            let handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid);
+            let handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid).ok()?;
             if handle.is_invalid() {
                 return None;
             }
@@ -213,7 +213,7 @@ mod win {
 
     fn count_handles(pid: u32) -> Result<u32, String> {
         unsafe {
-            let handle = OpenProcess(PROCESS_QUERY_INFORMATION, false, pid);
+            let handle = OpenProcess(PROCESS_QUERY_INFORMATION, false, pid).map_err(|e| e.to_string())?;
             if handle.is_invalid() {
                 return Ok(0);
             }
@@ -319,11 +319,13 @@ fn push_activity(app: &tauri::AppHandle, state: &AppState, event: &str, message:
         if v.len() > 10000 { v.truncate(10000); }
     }
     let _ = app.emit("new_log_entry", &act);
+    let log_process_name = act.process_name.clone();
+    let log_pid = act.pid;
     match event {
         "SCAN_START" => info!(event="SCAN_START", message),
-        "DETECTED" => warn!(event="DETECTED", %message, ?process_name, ?pid),
-        "KILL_SUCCESS" => info!(event="KILL_SUCCESS", %message, ?process_name, ?pid),
-        "KILL_FAIL" => warn!(event="KILL_FAIL", %message, ?process_name, ?pid),
+        "DETECTED" => warn!(event="DETECTED", %message, ?log_process_name, ?log_pid),
+        "KILL_SUCCESS" => info!(event="KILL_SUCCESS", %message, ?log_process_name, ?log_pid),
+        "KILL_FAIL" => warn!(event="KILL_FAIL", %message, ?log_process_name, ?log_pid),
         "ERROR" => error!(event="ERROR", %message),
         _ => info!(event=%event, %message),
     }
