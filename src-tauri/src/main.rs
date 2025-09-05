@@ -488,8 +488,9 @@ fn start_single_scan(app: tauri::AppHandle, state: tauri::State<AppState>) -> Re
 fn start_daemon(app: tauri::AppHandle, state: tauri::State<AppState>, interval: u64, dry_run: bool) -> Result<(), String> {
     if state.daemon_running.swap(true, Ordering::SeqCst) { return Ok(()); }
     let app2 = app.clone();
-    let st = state.inner();
     let handle = thread::spawn(move || {
+        let st_state = app2.state::<AppState>();
+        let st = st_state.inner();
         loop {
             if !st.daemon_running.load(Ordering::SeqCst) { break; }
             let _ = app2.emit("daemon-status", serde_json::json!({"running": true}));
