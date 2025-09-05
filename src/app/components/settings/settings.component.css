@@ -14,6 +14,9 @@
       flex: 1 1 auto;
       min-height: 0;
     }
+    .settings-section {
+      margin-bottom: 16px; /* reduce spacing to fit fixed height */
+    }
 
     .settings-section {
       background: rgba(255, 255, 255, 0.03);

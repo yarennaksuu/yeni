@@ -1,7 +1,10 @@
 /* Process Scanner Component Styles */
 .process-scanner {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
+  height: 100%;
+  min-height: 0;
 }
 
 .status-indicator {
@@ -21,7 +24,8 @@
 .controls-section {
   display: flex;
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
+  flex: 0 0 auto;
 }
 
 .primary-button {
@@ -72,7 +76,8 @@ table.process-table {
 
 /* Utility */
 .scanner-section {
-  max-height: 474px;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
 }
 
