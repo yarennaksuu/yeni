@@ -14,6 +14,10 @@ html, body {
   --muted: #9aa0a6;
   --primary: #ff6b35;
   --border: #2a2f35;
+  /* Fixed layout sizing */
+  --header-height: 64px;
+  --content-width: 1280px;
+  --content-height: calc(100vh - var(--header-height));
 }
 
 .dark-theme {
@@ -67,6 +71,7 @@ header.header {
   align-items: center;
   justify-content: space-between;
   padding: 16px 24px;
+  height: var(--header-height);
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   flex: 0 0 auto;
@@ -104,6 +109,9 @@ main {
   display: flex;
   flex-direction: column;
   min-height: 0; /* allow children to size and scroll */
+  width: var(--content-width);
+  height: var(--content-height);
+  margin: 0 auto; /* center fixed-size content */
 }
 
 /* Existing utility rules kept */
