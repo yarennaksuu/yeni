@@ -234,24 +234,6 @@
           </form>
         </div>
 
-        <!-- Actions -->
-        <div class="settings-actions settings-section--actions">
-          <button class="btn btn-secondary" (click)="resetToDefaults()">
-            <i class="fas fa-undo"></i>
-            {{ translate('settings.resetDefaults') }}
-          </button>
-          
-          <button class="btn btn-success" (click)="exportSettings()">
-            <i class="fas fa-download"></i>
-            {{ translate('settings.exportSettings') }}
-          </button>
-          
-          <button class="btn btn-primary" (click)="importSettings()">
-            <i class="fas fa-upload"></i>
-            {{ translate('settings.importSettings') }}
-          </button>
-        </div>
-
         <!-- Test Notifications -->
         <div class="settings-section settings-section--test">
           <div class="section-header">
@@ -280,6 +262,24 @@
               {{ translate('notifications.error') }}
             </button>
           </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="settings-actions settings-section--actions">
+          <button class="btn btn-secondary" (click)="resetToDefaults()">
+            <i class="fas fa-undo"></i>
+            {{ translate('settings.resetDefaults') }}
+          </button>
+          
+          <button class="btn btn-success" (click)="exportSettings()">
+            <i class="fas fa-download"></i>
+            {{ translate('settings.exportSettings') }}
+          </button>
+          
+          <button class="btn btn-primary" (click)="importSettings()">
+            <i class="fas fa-upload"></i>
+            {{ translate('settings.importSettings') }}
+          </button>
         </div>
       </div>
     </div>
