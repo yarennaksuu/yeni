@@ -48,7 +48,7 @@ mod win {
     use std::os::windows::ffi::OsStrExt;
     use windows::{
         core::{PCWSTR, PWSTR},
-        Win32::Foundation::{CloseHandle, BOOL, HWND, LPARAM, LRESULT, WPARAM, HANDLE, HMODULE},
+        Win32::Foundation::{CloseHandle, BOOL, HWND, LPARAM, WPARAM, HANDLE, HMODULE},
         Win32::System::Diagnostics::ToolHelp::{
             CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, Thread32First, Thread32Next,
             PROCESSENTRY32W, THREADENTRY32, TH32CS_SNAPPROCESS, TH32CS_SNAPTHREAD,
