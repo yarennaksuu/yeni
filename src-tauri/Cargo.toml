@@ -27,6 +27,7 @@ tracing-appender = "0.2"
 notify = "6"
 hmac = "0.12"
 rand = "0.8"
+hex = "0.4"
 
 # Windows API
 windows = { version = "0.58", features = [
