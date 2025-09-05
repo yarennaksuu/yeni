@@ -1,434 +1,102 @@
 .settings-container {}
     .settings-container {
       height: 100%;
-      padding: 24px;
+      padding: 16px;
       display: flex;
       flex-direction: column;
       min-height: 0;
+      overflow: hidden; /* no page-level scroll */
     }
 
     .settings-content {
-      max-width: 1000px;
+      max-width: 100%;
       margin: 0 auto;
-      overflow: auto; /* scroll inside settings content only */
+      overflow-y: auto; /* vertical only */
+      overflow-x: hidden; /* remove horizontal scroll */
       flex: 1 1 auto;
       min-height: 0;
-    }
-    .settings-section {
-      margin-bottom: 16px; /* reduce spacing to fit fixed height */
+      display: grid;
+      grid-template-columns: 1fr 1fr; /* side-by-side */
+      gap: 12px;
+      align-content: start;
     }
 
+    /* Each section card fits the grid column */
     .settings-section {
       background: rgba(255, 255, 255, 0.03);
       border-radius: 12px;
       border: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 24px;
-      margin-bottom: 24px;
+      padding: 16px;
+      margin: 0; /* let grid gap control spacing */
     }
 
     .section-header {
-      margin-bottom: 24px;
-      padding-bottom: 16px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .section-header h3 {
-      margin: 0 0 8px 0;
+      margin: 0 0 6px 0;
       color: #ff6b35;
-      font-size: 20px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .section-header p {
-      margin: 0;
-      color: #999;
-      font-size: 14px;
-    }
-
-    .settings-grid {
-      display: grid;
-      gap: 20px;
-    }
-
-    .setting-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 24px;
-      padding: 16px;
-      background: rgba(255, 255, 255, 0.02);
-      border-radius: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      transition: opacity 0.2s ease;
-    }
-
-    .setting-item.full-width {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 16px;
-    }
-
-    .setting-item.disabled {
-      opacity: 0.5;
-      pointer-events: none;
-    }
-
-    .setting-info {
-      flex: 1;
-    }
-
-    .setting-info label {
-      display: block;
-      font-weight: 600;
-      color: #fff;
       font-size: 16px;
-      margin-bottom: 4px;
-    }
-
-    .setting-description {
-      color: #999;
-      font-size: 13px;
-      line-height: 1.4;
-      margin: 0;
-    }
-
-    .setting-control {
-      flex-shrink: 0;
-    }
-
-    /* Language Selector */
-    .language-selector-full {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      min-width: 200px;
-    }
-
-    .language-option {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      background: rgba(255, 255, 255, 0.02);
-    }
-
-    .language-option:hover {
-      background: rgba(255, 255, 255, 0.05);
-      border-color: rgba(255, 255, 255, 0.2);
-    }
-
-    .language-option.active {
-      background: rgba(255, 107, 53, 0.1);
-      border-color: #ff6b35;
-    }
-
-    .language-option .flag {
-      font-size: 20px;
-    }
-
-    .language-info {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .language-name {
       font-weight: 600;
-      color: #fff;
-      font-size: 14px;
-    }
-
-    .language-english {
-      font-size: 12px;
-      color: #999;
-    }
-
-    .language-option .fa-check {
-      color: #ff6b35;
-    }
-
-    /* Theme Selector */
-    .theme-selector {
-      display: flex;
-      gap: 8px;
-    }
-
-    .theme-option {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      padding: 16px 12px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      background: rgba(255, 255, 255, 0.02);
-      min-width: 80px;
-    }
-
-    .theme-option:hover {
-      background: rgba(255, 255, 255, 0.05);
-      border-color: rgba(255, 255, 255, 0.2);
-    }
-
-    .theme-option.active {
-      background: rgba(255, 107, 53, 0.1);
-      border-color: #ff6b35;
-      color: #ff6b35;
-    }
-
-    .theme-option i {
-      font-size: 20px;
-    }
-
-    .theme-option span {
-      font-size: 12px;
-      font-weight: 500;
-      text-align: center;
-    }
-
-    /* Toggle Switch */
-    .toggle-switch {
-      position: relative;
-      display: inline-block;
-      width: 48px;
-      height: 26px;
-      cursor: pointer;
-    }
-
-    .toggle-switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: #555;
-      transition: .3s;
-      border-radius: 13px;
-    }
-
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 20px;
-      width: 20px;
-      left: 3px;
-      bottom: 3px;
-      background-color: white;
-      transition: .3s;
-      border-radius: 50%;
-    }
-
-    input:checked + .slider {
-      background-color: #ff6b35;
-    }
-
-    input:checked + .slider:before {
-      transform: translateX(22px);
-    }
-
-    /* Input with Unit */
-    .input-with-unit {
-      display: flex;
-      align-items: center;
-      background: #2d2d2d;
-      border: 1px solid #555;
-      border-radius: 6px;
-      overflow: hidden;
-    }
-
-    .input-with-unit input {
-      background: none;
-      border: none;
-      color: #fff;
-      padding: 8px 12px;
-      width: 80px;
-      font-size: 14px;
-    }
-
-    .input-with-unit input:focus {
-      outline: none;
-    }
-
-    .input-with-unit .unit {
-      background: rgba(255, 255, 255, 0.1);
-      color: #ccc;
-      padding: 8px 12px;
-      font-size: 12px;
-      font-weight: 500;
-      border-left: 1px solid #555;
-    }
-
-    /* Checkbox Grid */
-    .checkbox-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-    }
-
-    .checkbox-item {
       display: flex;
       align-items: center;
       gap: 8px;
-      cursor: pointer;
-      user-select: none;
     }
 
-    .checkbox-item input {
-      width: 16px;
-      height: 16px;
-      cursor: pointer;
-    }
+    .section-header p { margin: 0; color: #999; font-size: 12px; }
 
-    .checkbox-label {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 14px;
-      color: #ccc;
-    }
+    .settings-grid { display: grid; gap: 12px; }
 
-    .checkbox-label i.info { color: #17a2b8; }
-    .checkbox-label i.success { color: #28a745; }
-    .checkbox-label i.warning { color: #ffc107; }
-    .checkbox-label i.error { color: #dc3545; }
+    .setting-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px; background: rgba(255, 255, 255, 0.02); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05); transition: opacity 0.2s ease; }
 
-    /* Buttons */
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 16px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 14px;
-      transition: all 0.2s ease;
-      text-decoration: none;
-    }
+    .setting-item.full-width { flex-direction: column; align-items: stretch; gap: 10px; }
 
-    .btn:hover {
-      transform: translateY(-1px);
-    }
+    .setting-item.disabled { opacity: 0.5; pointer-events: none; }
 
-    .btn-primary {
-      background: #ff6b35;
-      color: white;
-    }
+    .setting-info { flex: 1; }
 
-    .btn-primary:hover {
-      background: #e55a2b;
-    }
+    .setting-info label { display: block; font-weight: 600; color: #fff; font-size: 14px; margin-bottom: 2px; }
 
-    .btn-secondary {
-      background: #6c757d;
-      color: white;
-    }
+    .setting-description { color: #999; font-size: 12px; line-height: 1.3; margin: 0; }
 
-    .btn-secondary:hover {
-      background: #5a6268;
-    }
+    .setting-control { flex-shrink: 0; }
 
-    .btn-success {
-      background: #28a745;
-      color: white;
-    }
+    /* Language selector tweaked width to avoid overflow */
+    .language-selector-full { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    .language-option { display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px; cursor: pointer; transition: all 0.2s ease; background: rgba(255, 255, 255, 0.02); }
 
-    .btn-success:hover {
-      background: #218838;
-    }
+    .language-info { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .language-name { font-weight: 600; color: #fff; font-size: 14px; }
+    .language-english { font-size: 12px; color: #999; }
 
-    .btn-info {
-      background: #17a2b8;
-      color: white;
-    }
+    /* Theme selector compact */
+    .theme-selector { display: flex; gap: 8px; }
+    .theme-option { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 10px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; background: rgba(255, 255, 255, 0.02); min-width: 80px; }
 
-    .btn-info:hover {
-      background: #138496;
-    }
+    /* Toggle smaller */
+    .toggle-switch { width: 40px; height: 22px; }
+    .slider:before { height: 16px; width: 16px; left: 3px; bottom: 3px; }
+    input:checked + .slider:before { transform: translateX(18px); }
 
-    .btn-warning {
-      background: #ffc107;
-      color: #000;
-    }
+    /* Input with unit compact */
+    .input-with-unit { display: flex; align-items: center; background: #2d2d2d; border: 1px solid #555; border-radius: 6px; overflow: hidden; }
+    .input-with-unit input { background: none; border: none; color: #fff; padding: 8px 10px; width: 80px; font-size: 14px; }
+    .input-with-unit .unit { background: rgba(255, 255, 255, 0.1); color: #ccc; padding: 8px 10px; font-size: 12px; font-weight: 500; border-left: 1px solid #555; }
 
-    .btn-warning:hover {
-      background: #e0a800;
-    }
+    .checkbox-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .checkbox-item { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+    .checkbox-label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #ccc; }
 
-    .btn-danger {
-      background: #dc3545;
-      color: white;
-    }
+    /* Actions and Test sections maintain single column full width across grid */
+    .settings-actions { grid-column: 1 / -1; display: flex; justify-content: center; gap: 12px; padding: 12px; background: rgba(255, 255, 255, 0.02); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05); margin: 0; }
 
-    .btn-danger:hover {
-      background: #c82333;
-    }
+    .test-buttons { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 
-    /* Settings Actions */
-    .settings-actions {
-      display: flex;
-      justify-content: center;
-      gap: 16px;
-      padding: 24px;
-      background: rgba(255, 255, 255, 0.02);
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      margin-bottom: 24px;
-    }
-
-    /* Test Buttons */
-    .test-buttons {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .settings-container {
-        padding: 16px;
-      }
-
-      .setting-item {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 12px;
-      }
-
-      .theme-selector {
-        justify-content: center;
-      }
-
-      .checkbox-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .settings-actions {
-        flex-direction: column;
-      }
-
-      .test-buttons {
-        flex-direction: column;
-      }
+    @media (max-width: 900px) {
+      .settings-content { grid-template-columns: 1fr; }
     }
 
     /* Light Theme Support */
