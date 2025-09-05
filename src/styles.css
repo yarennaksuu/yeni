@@ -100,13 +100,16 @@ header.header p {
 main {
   padding: 24px;
   flex: 1 1 auto;
-  overflow: hidden; /* no scrolling in content area */
+  overflow: hidden; /* no page-level scroll */
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* allow children to size and scroll */
 }
 
 /* Existing utility rules kept */
 #processListContainer {
   max-height: 400px;
-  overflow-y: hidden;
+  overflow-y: auto; /* scroll only inside the list */
 }
 
 .settings-grid {
